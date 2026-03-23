@@ -110,18 +110,18 @@ Rules:
         val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
         @Serializable
+        data class VocabDto(
+            val character: String,
+            val pinyin: String,
+            val meaning: String
+        )
+
+        @Serializable
         data class GeminiTranslation(
             val chineseText: String,
             val pinyinText: String,
             val grammarNote: String = "",
             val vocabulary: List<VocabDto>
-        )
-
-        @Serializable
-        data class VocabDto(
-            val character: String,
-            val pinyin: String,
-            val meaning: String
         )
 
         val parsed = json.decodeFromString<GeminiTranslation>(cleanJson)
