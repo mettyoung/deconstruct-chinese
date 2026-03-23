@@ -7,6 +7,7 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
@@ -47,18 +48,20 @@ class GeminiService(private val apiKey: String) {
     }
 
     private val baseUrl =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 
     suspend fun translate(englishText: String): TranslationResult {
         val prompt = buildPrompt(englishText)
 
-        val response: GeminiResponse = client.post(baseUrl) {
+        val response: HttpResponse = client.post(baseUrl) {
             url { parameters.append("key", apiKey) }
             contentType(ContentType.Application.Json)
             setBody(GeminiRequest(listOf(Content(listOf(Part(prompt))))))
-        }.body()
+        }
 
-        val rawText = response.candidates
+        val body: GeminiResponse = response.body()
+
+        val rawText = body.candidates
             ?.firstOrNull()
             ?.content
             ?.parts
@@ -71,7 +74,7 @@ class GeminiService(private val apiKey: String) {
 
     private fun buildPrompt(englishText: String): String {
         return """
-You are a Chinese language teacher. Translate the following English text to Mandarin Chinese.
+You are a Chinese language teacher. Translate the following English text to Traditional Chinese.
 Respond ONLY with a valid JSON object, no markdown, no extra text.
 
 English: "$englishText"
