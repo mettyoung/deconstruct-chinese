@@ -515,7 +515,7 @@ fun VocabularyCard(item: VocabularyItem, onSpeak: () -> Unit) {
         ) {
             Text(
                 text = item.character,
-                fontSize = 26.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center
