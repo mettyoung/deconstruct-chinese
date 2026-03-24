@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mettyoung.deconstructchinese.audio.AudioPlayer
 import com.mettyoung.deconstructchinese.model.TranslationState
-import com.mettyoung.deconstructchinese.network.GeminiService
+import com.mettyoung.deconstructchinese.network.QwenService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class TranslatorViewModel(apiKey: String) : ViewModel() {
 
-    private val geminiService = GeminiService(apiKey)
+    private val qwenService = QwenService(apiKey)
     private val audioPlayer = AudioPlayer()
 
     private val _translationState =
@@ -41,13 +41,13 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
             _translationState.value = TranslationState.Loading
 
             try {
-                val result = geminiService.translate(text)
+                val result = qwenService.translate(text)
                 _translationState.value = TranslationState.Success(result)
             } catch (e: Exception) {
                 _translationState.value = TranslationState.Error(
                     message = when {
-                        e.message?.contains("400") == true ->
-                            "Invalid API key. Please check your Gemini API key."
+                        e.message?.contains("401") == true ->
+                            "Invalid API key. Please check your Qwen API key."
                         e.message?.contains("429") == true ->
                             "Rate limit reached. Wait a moment and try again."
                         e.message?.contains("connect") == true ->

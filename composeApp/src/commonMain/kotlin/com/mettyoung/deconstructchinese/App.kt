@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Menu
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -98,7 +98,7 @@ fun App() {
             onSurface  = TextPrimary,
         )
     ) {
-        var apiKey by rememberSaveable { mutableStateOf("AIzaSyBdt5zkt1BiSNH7D8039EI4eGO3-urghsQ") }
+        var apiKey by rememberSaveable { mutableStateOf("sk-043c8d868fed44758bb76d84774aeeea") }
 
         TranslatorScreen(
             apiKey = apiKey,
@@ -121,7 +121,7 @@ fun ApiKeyModal(
         containerColor = SurfaceDark,
         title = {
             Text(
-                "Gemini API Settings",
+                "Qwen API Settings",
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -129,7 +129,7 @@ fun ApiKeyModal(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    "Enter your Gemini API key to enable translations.",
+                    "Enter your Alibaba DashScope API key to enable translations.",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
@@ -163,7 +163,7 @@ fun ApiKeyModal(
                 )
 
                 Text(
-                    "Get a free key at aistudio.google.com",
+                    "Get your key at dashscope.console.aliyun.com",
                     color = GoldAccent,
                     fontSize = 12.sp,
                     modifier = Modifier.clickable { /* Link opening could be added here */ }
@@ -235,7 +235,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
-                Text("中文翻译器", color = GoldAccent, fontSize = 14.sp)
+                Text("Powered by Qwen", color = GoldAccent, fontSize = 14.sp)
             }
             
             Row {
@@ -400,7 +400,7 @@ fun TranslationResultCard(
                         ) {
                             Icon(
                                 if (isPlaying) Icons.Default.Stop
-                                else Icons.Default.VolumeUp,
+                                else Icons.AutoMirrored.Filled.VolumeUp,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -567,7 +567,7 @@ fun VocabularyCard(item: VocabularyItem, onSpeak: () -> Unit) {
                     .background(GoldAccent.copy(alpha = 0.15f))
             ) {
                 Icon(
-                    Icons.Default.VolumeUp,
+                    Icons.AutoMirrored.Filled.VolumeUp,
                     contentDescription = "Pronounce ${item.character}",
                     tint = GoldAccent,
                     modifier = Modifier.size(18.dp)
