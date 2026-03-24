@@ -1,13 +1,58 @@
 package com.mettyoung.deconstructchinese
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,7 +60,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -49,133 +95,122 @@ fun App() {
             onSurface  = TextPrimary,
         )
     ) {
-        var apiKey by remember { mutableStateOf("") }
-        var apiKeyEntered by remember { mutableStateOf(false) }
+        var apiKey by rememberSaveable { mutableStateOf("AIzaSyBdt5zkt1BiSNH7D8039EI4eGO3-urghsQ") }
 
-        if (!apiKeyEntered) {
-            ApiKeyScreen(
-                onApiKeySubmit = { key ->
-                    apiKey = key
-                    apiKeyEntered = true
-                }
-            )
-        } else {
-            TranslatorScreen(apiKey = apiKey)
-        }
+        TranslatorScreen(
+            apiKey = apiKey,
+            onApiKeySubmit = { apiKey = it }
+        )
     }
 }
 
 @Composable
-fun ApiKeyScreen(onApiKeySubmit: (String) -> Unit) {
-    var keyInput by remember { mutableStateOf("") }
+fun ApiKeyModal(
+    currentApiKey: String,
+    onDismiss: () -> Unit,
+    onApiKeySubmit: (String) -> Unit
+) {
+    var keyInput by remember { mutableStateOf(currentApiKey) }
     var showKey  by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            modifier = Modifier.widthIn(max = 400.dp)
-        ) {
-            Text("🀄", fontSize = 64.sp)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = SurfaceDark,
+        title = {
             Text(
-                "Chinese Translator",
-                style = MaterialTheme.typography.headlineMedium,
+                "Gemini API Settings",
                 color = TextPrimary,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLarge
             )
-            Text(
-                "Powered by Gemini AI",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary
-            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    "Enter your Gemini API key to enable translations.",
+                    color = TextSecondary,
+                    fontSize = 14.sp
+                )
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CardDark),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("How to get your free API key:",
-                        color = GoldAccent, fontWeight = FontWeight.SemiBold)
-                    Text("1. Go to aistudio.google.com",
-                        color = TextSecondary, fontSize = 13.sp)
-                    Text("2. Sign in with your Google account",
-                        color = TextSecondary, fontSize = 13.sp)
-                    Text("3. Click Get API Key → Create API Key",
-                        color = TextSecondary, fontSize = 13.sp)
-                    Text("4. Copy and paste it below",
-                        color = TextSecondary, fontSize = 13.sp)
-                    Text("Free tier: 15 requests/min, 1500/day",
-                        color = Color(0xFF81C784), fontSize = 13.sp)
-                }
+                OutlinedTextField(
+                    value = keyInput,
+                    onValueChange = { keyInput = it },
+                    label = { Text("API Key", color = TextSecondary) },
+                    visualTransformation = if (showKey)
+                        androidx.compose.ui.text.input.VisualTransformation.None
+                    else
+                        androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showKey = !showKey }) {
+                            Icon(
+                                if (showKey) Icons.Default.VisibilityOff
+                                else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = TextSecondary
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = RedPrimary,
+                        unfocusedBorderColor = TextSecondary.copy(alpha = 0.4f),
+                        focusedTextColor     = TextPrimary,
+                        unfocusedTextColor   = TextPrimary
+                    ),
+                    singleLine = true
+                )
+
+                Text(
+                    "Get a free key at aistudio.google.com",
+                    color = GoldAccent,
+                    fontSize = 12.sp,
+                    modifier = Modifier.clickable { /* Link opening could be added here */ }
+                )
             }
-
-            OutlinedTextField(
-                value = keyInput,
-                onValueChange = { keyInput = it },
-                label = { Text("Gemini API Key", color = TextSecondary) },
-                placeholder = { Text("AIza...",
-                    color = TextSecondary.copy(alpha = 0.5f)) },
-                visualTransformation = if (showKey)
-                    androidx.compose.ui.text.input.VisualTransformation.None
-                else
-                    androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { showKey = !showKey }) {
-                        Icon(
-                            if (showKey) Icons.Default.VisibilityOff
-                            else Icons.Default.Visibility,
-                            contentDescription = null,
-                            tint = TextSecondary
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor   = RedPrimary,
-                    unfocusedBorderColor = TextSecondary.copy(alpha = 0.4f),
-                    focusedTextColor     = TextPrimary,
-                    unfocusedTextColor   = TextPrimary
-                ),
-                singleLine = true
-            )
-
+        },
+        confirmButton = {
             Button(
                 onClick = {
-                    if (keyInput.isNotBlank())
-                        onApiKeySubmit(keyInput.trim())
+                    onApiKeySubmit(keyInput.trim())
+                    onDismiss()
                 },
-                enabled = keyInput.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = RedPrimary)
             ) {
-                Text("Start Learning Chinese!", fontWeight = FontWeight.SemiBold)
+                Text("Save")
             }
-        }
-    }
-}
-
-@Composable
-fun TranslatorScreen(apiKey: String) {
-    val viewModel: TranslatorViewModel = viewModel(
-        factory = viewModelFactory {
-            initializer {
-                TranslatorViewModel(apiKey)
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
             }
         }
     )
+}
+
+@Composable
+fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
+    val viewModel: TranslatorViewModel = key(apiKey) {
+        viewModel(
+            factory = viewModelFactory {
+                initializer {
+                    TranslatorViewModel(apiKey)
+                }
+            }
+        )
+    }
 
     val inputText        by viewModel.inputText.collectAsStateWithLifecycle()
     val translationState by viewModel.translationState.collectAsStateWithLifecycle()
     val isPlaying        by viewModel.isPlaying.collectAsStateWithLifecycle()
+    
+    var showApiModal by remember { mutableStateOf(false) }
+
+    if (showApiModal) {
+        ApiKeyModal(
+            currentApiKey = apiKey,
+            onDismiss = { showApiModal = false },
+            onApiKeySubmit = onApiKeySubmit
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -199,11 +234,19 @@ fun TranslatorScreen(apiKey: String) {
                 )
                 Text("中文翻译器", color = GoldAccent, fontSize = 14.sp)
             }
-            if (translationState !is TranslationState.Idle) {
-                IconButton(onClick = { viewModel.clearAll() }) {
-                    Icon(Icons.Default.Refresh,
-                        contentDescription = "Clear",
-                        tint = TextSecondary)
+            
+            Row {
+                if (translationState !is TranslationState.Idle) {
+                    IconButton(onClick = { viewModel.clearAll() }) {
+                        Icon(Icons.Default.Refresh,
+                            contentDescription = "Clear",
+                            tint = TextSecondary)
+                    }
+                }
+                IconButton(onClick = { showApiModal = true }) {
+                    Icon(Icons.Default.Menu,
+                        contentDescription = "Settings",
+                        tint = TextPrimary)
                 }
             }
         }
@@ -239,7 +282,13 @@ fun TranslatorScreen(apiKey: String) {
                 )
 
                 Button(
-                    onClick = { viewModel.translate() },
+                    onClick = {
+                        if (apiKey.isBlank()) {
+                            showApiModal = true
+                        } else {
+                            viewModel.translate()
+                        }
+                    },
                     enabled = inputText.isNotBlank()
                             && translationState !is TranslationState.Loading,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -256,8 +305,10 @@ fun TranslatorScreen(apiKey: String) {
                     } else {
                         Icon(Icons.Default.Translate, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Translate to Chinese",
-                            fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (apiKey.isBlank()) "Enter API Key to Translate" else "Translate to Chinese",
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
