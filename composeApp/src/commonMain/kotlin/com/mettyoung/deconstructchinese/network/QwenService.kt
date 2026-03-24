@@ -126,7 +126,7 @@ Return this exact JSON structure:
 {
   "chineseText": "the full Chinese translation",
   "pinyinText": "full pinyin with tone marks for the whole sentence",
-  "grammarNote": "one sentence explaining the grammar structure",
+  "grammarNote": "one sentence explaining the grammar structure in english",
   "vocabulary": [
     {
       "character": "Chinese character or word",
