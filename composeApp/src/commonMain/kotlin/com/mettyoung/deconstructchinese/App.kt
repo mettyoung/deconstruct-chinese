@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
@@ -57,6 +58,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -346,6 +349,8 @@ fun TranslationResultCard(
     onStop: () -> Unit,
     onSpeakWord: (String) -> Unit
 ) {
+    val clipboardManager = LocalClipboardManager.current
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
         // Main translation
@@ -365,28 +370,44 @@ fun TranslationResultCard(
                     Text("Chinese", color = GoldAccent,
                         fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
 
-                    FilledTonalButton(
-                        onClick = { if (isPlaying) onStop() else onSpeak() },
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = if (isPlaying)
-                                RedPrimary
-                            else
-                                GoldAccent.copy(alpha = 0.2f),
-                            contentColor = if (isPlaying)
-                                Color.White
-                            else
-                                GoldAccent
-                        )
-                    ) {
-                        Icon(
-                            if (isPlaying) Icons.Default.Stop
-                            else Icons.Default.VolumeUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(if (isPlaying) "Stop" else "Listen",
-                            fontSize = 13.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(result.chineseText))
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = "Copy Chinese text",
+                                tint = GoldAccent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        FilledTonalButton(
+                            onClick = { if (isPlaying) onStop() else onSpeak() },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = if (isPlaying)
+                                    RedPrimary
+                                else
+                                    GoldAccent.copy(alpha = 0.2f),
+                                contentColor = if (isPlaying)
+                                    Color.White
+                                else
+                                    GoldAccent
+                            )
+                        ) {
+                            Icon(
+                                if (isPlaying) Icons.Default.Stop
+                                else Icons.Default.VolumeUp,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (isPlaying) "Stop" else "Listen",
+                                fontSize = 13.sp)
+                        }
                     }
                 }
 
@@ -473,6 +494,8 @@ fun TranslationResultCard(
 
 @Composable
 fun VocabularyCard(item: VocabularyItem, onSpeak: () -> Unit) {
+    val clipboardManager = LocalClipboardManager.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -515,20 +538,41 @@ fun VocabularyCard(item: VocabularyItem, onSpeak: () -> Unit) {
                 fontSize = 13.sp)
         }
 
-        // Speak button
-        IconButton(
-            onClick = onSpeak,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(GoldAccent.copy(alpha = 0.15f))
-        ) {
-            Icon(
-                Icons.Default.VolumeUp,
-                contentDescription = "Pronounce ${item.character}",
-                tint = GoldAccent,
-                modifier = Modifier.size(18.dp)
-            )
+        // Action buttons
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Copy button
+            IconButton(
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(item.character))
+                },
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(GoldAccent.copy(alpha = 0.15f))
+            ) {
+                Icon(
+                    Icons.Default.ContentCopy,
+                    contentDescription = "Copy ${item.character}",
+                    tint = GoldAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            // Speak button
+            IconButton(
+                onClick = onSpeak,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(GoldAccent.copy(alpha = 0.15f))
+            ) {
+                Icon(
+                    Icons.Default.VolumeUp,
+                    contentDescription = "Pronounce ${item.character}",
+                    tint = GoldAccent,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
