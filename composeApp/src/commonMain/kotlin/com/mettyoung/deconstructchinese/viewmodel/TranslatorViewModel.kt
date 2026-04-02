@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mettyoung.deconstructchinese.audio.AudioPlayer
 import com.mettyoung.deconstructchinese.model.TranslationState
+import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.QwenService
+import com.mettyoung.deconstructchinese.storage.VocabularyStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,8 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    val savedVocabulary = VocabularyStore.savedVocabulary
 
     fun onInputTextChange(newText: String) {
         _inputText.value = newText
@@ -84,6 +88,18 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         stopAudio()
         _inputText.value = ""
         _translationState.value = TranslationState.Idle
+    }
+
+    fun saveWord(item: VocabularyItem) {
+        VocabularyStore.saveWord(item)
+    }
+
+    fun removeWord(item: VocabularyItem) {
+        VocabularyStore.removeWord(item)
+    }
+
+    fun isSaved(character: String): Boolean {
+        return VocabularyStore.isSaved(character)
     }
 
     override fun onCleared() {

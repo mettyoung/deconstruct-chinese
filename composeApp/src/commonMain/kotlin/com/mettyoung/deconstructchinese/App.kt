@@ -24,7 +24,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
@@ -45,6 +49,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -205,8 +210,10 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     val inputText        by viewModel.inputText.collectAsStateWithLifecycle()
     val translationState by viewModel.translationState.collectAsStateWithLifecycle()
     val isPlaying        by viewModel.isPlaying.collectAsStateWithLifecycle()
+    val savedVocab       by viewModel.savedVocabulary.collectAsStateWithLifecycle()
     
     var showApiModal by remember { mutableStateOf(false) }
+    var showCollection by remember { mutableStateOf(false) }
 
     if (showApiModal) {
         ApiKeyModal(
@@ -216,15 +223,164 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
         )
     }
 
+    if (showCollection) {
+        CollectionScreen(
+            vocabulary = savedVocab,
+            onDismiss = { showCollection = false },
+            onRemove = { viewModel.removeWord(it) },
+            onSpeak = { viewModel.speakWord(it) }
+        )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BackgroundDark)
+                .safeDrawingPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Chinese Translator",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text("Powered by Qwen", color = GoldAccent, fontSize = 14.sp)
+                }
+                
+                Row {
+                    if (translationState !is TranslationState.Idle) {
+                        IconButton(onClick = { viewModel.clearAll() }) {
+                            Icon(Icons.Default.Refresh,
+                                contentDescription = "Clear",
+                                tint = TextSecondary)
+                        }
+                    }
+                    IconButton(onClick = { showCollection = true }) {
+                        Icon(Icons.Default.CollectionsBookmark,
+                            contentDescription = "Saved Vocabulary",
+                            tint = if (savedVocab.isNotEmpty()) GoldAccent else TextPrimary)
+                    }
+                    IconButton(onClick = { showApiModal = true }) {
+                        Icon(Icons.Default.Menu,
+                            contentDescription = "Settings",
+                            tint = TextPrimary)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Input card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = SurfaceDark),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("English", color = TextSecondary,
+                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { viewModel.onInputTextChange(it) },
+                        placeholder = { Text("Type an English sentence...",
+                            color = TextSecondary.copy(alpha = 0.5f)) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor   = RedPrimary,
+                            unfocusedBorderColor = TextSecondary.copy(alpha = 0.3f),
+                            focusedTextColor     = TextPrimary,
+                            unfocusedTextColor   = TextPrimary,
+                            cursorColor          = RedPrimary
+                        ),
+                        maxLines = 4
+                    )
+
+                    Button(
+                        onClick = {
+                            if (apiKey.isBlank()) {
+                                showApiModal = true
+                            } else {
+                                viewModel.translate()
+                            }
+                        },
+                        enabled = inputText.isNotBlank()
+                                && translationState !is TranslationState.Loading,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = RedPrimary)
+                    ) {
+                        if (translationState is TranslationState.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Translating...")
+                        } else {
+                            Icon(Icons.Default.Translate, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (apiKey.isBlank()) "Enter API Key to Translate" else "Translate to Chinese",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Results — only shown when state is Success or Error
+            AnimatedVisibility(
+                visible = translationState is TranslationState.Success
+                        || translationState is TranslationState.Error,
+                enter = fadeIn() + slideInVertically(),
+                exit  = fadeOut()
+            ) {
+                when (val state = translationState) {
+                    is TranslationState.Success -> TranslationResultCard(
+                        result    = state.result,
+                        isPlaying = isPlaying,
+                        savedVocab = savedVocab,
+                        onSpeak   = { viewModel.speakChinese() },
+                        onStop    = { viewModel.stopAudio() },
+                        onSpeakWord = { viewModel.speakWord(it) },
+                        onSaveWord = { viewModel.saveWord(it) },
+                        onRemoveWord = { viewModel.removeWord(it) }
+                    )
+                    is TranslationState.Error -> ErrorCard(state.message)
+                    else -> {}
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CollectionScreen(
+    vocabulary: List<VocabularyItem>,
+    onDismiss: () -> Unit,
+    onRemove: (VocabularyItem) -> Unit,
+    onSpeak: (String) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
             .safeDrawingPadding()
-            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -232,112 +388,40 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
         ) {
             Column {
                 Text(
-                    "Chinese Translator",
+                    "My Vocabulary",
                     style = MaterialTheme.typography.headlineSmall,
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
-                Text("Powered by Qwen", color = GoldAccent, fontSize = 14.sp)
+                Text("${vocabulary.size} words saved", color = GoldAccent, fontSize = 14.sp)
             }
             
-            Row {
-                if (translationState !is TranslationState.Idle) {
-                    IconButton(onClick = { viewModel.clearAll() }) {
-                        Icon(Icons.Default.Refresh,
-                            contentDescription = "Clear",
-                            tint = TextSecondary)
-                    }
-                }
-                IconButton(onClick = { showApiModal = true }) {
-                    Icon(Icons.Default.Menu,
-                        contentDescription = "Settings",
-                        tint = TextPrimary)
-                }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Default.Refresh, contentDescription = "Back", tint = TextPrimary)
             }
         }
 
         Spacer(Modifier.height(24.dp))
 
-        // Input card
-        Card(
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        if (vocabulary.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No vocabulary saved yet.", color = TextSecondary)
+            }
+        } else {
             Column(
-                Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("English", color = TextSecondary,
-                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { viewModel.onInputTextChange(it) },
-                    placeholder = { Text("Type an English sentence...",
-                        color = TextSecondary.copy(alpha = 0.5f)) },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor   = RedPrimary,
-                        unfocusedBorderColor = TextSecondary.copy(alpha = 0.3f),
-                        focusedTextColor     = TextPrimary,
-                        unfocusedTextColor   = TextPrimary,
-                        cursorColor          = RedPrimary
-                    ),
-                    maxLines = 4
-                )
-
-                Button(
-                    onClick = {
-                        if (apiKey.isBlank()) {
-                            showApiModal = true
-                        } else {
-                            viewModel.translate()
-                        }
-                    },
-                    enabled = inputText.isNotBlank()
-                            && translationState !is TranslationState.Loading,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RedPrimary)
-                ) {
-                    if (translationState is TranslationState.Loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Translating...")
-                    } else {
-                        Icon(Icons.Default.Translate, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (apiKey.isBlank()) "Enter API Key to Translate" else "Translate to Chinese",
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                vocabulary.forEach { item ->
+                    VocabularyCard(
+                        item = item,
+                        isSaved = true,
+                        onSpeak = { onSpeak(item.character) },
+                        onSaveToggle = { onRemove(item) }
+                    )
                 }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        // Results — only shown when state is Success or Error
-        AnimatedVisibility(
-            visible = translationState is TranslationState.Success
-                    || translationState is TranslationState.Error,
-            enter = fadeIn() + slideInVertically(),
-            exit  = fadeOut()
-        ) {
-            when (val state = translationState) {
-                is TranslationState.Success -> TranslationResultCard(
-                    result    = state.result,
-                    isPlaying = isPlaying,
-                    onSpeak   = { viewModel.speakChinese() },
-                    onStop    = { viewModel.stopAudio() },
-                    onSpeakWord = { viewModel.speakWord(it) }
-                )
-                is TranslationState.Error -> ErrorCard(state.message)
-                else -> {}
             }
         }
     }
@@ -347,9 +431,12 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
 fun TranslationResultCard(
     result: TranslationResult,
     isPlaying: Boolean,
+    savedVocab: List<VocabularyItem>,
     onSpeak: () -> Unit,
     onStop: () -> Unit,
-    onSpeakWord: (String) -> Unit
+    onSpeakWord: (String) -> Unit,
+    onSaveWord: (VocabularyItem) -> Unit,
+    onRemoveWord: (VocabularyItem) -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
 
@@ -484,9 +571,14 @@ fun TranslationResultCard(
                 Spacer(Modifier.height(4.dp))
 
                 result.vocabulary.forEach { item ->
+                    val isSaved = savedVocab.any { it.character == item.character }
                     VocabularyCard(
                         item = item,
-                        onSpeak = { onSpeakWord(item.character) }
+                        isSaved = isSaved,
+                        onSpeak = { onSpeakWord(item.character) },
+                        onSaveToggle = {
+                            if (isSaved) onRemoveWord(item) else onSaveWord(item)
+                        }
                     )
                 }
             }
@@ -495,7 +587,12 @@ fun TranslationResultCard(
 }
 
 @Composable
-fun VocabularyCard(item: VocabularyItem, onSpeak: () -> Unit) {
+fun VocabularyCard(
+    item: VocabularyItem, 
+    isSaved: Boolean = false,
+    onSpeak: () -> Unit,
+    onSaveToggle: () -> Unit
+) {
     val clipboardManager = LocalClipboardManager.current
 
     Row(
@@ -541,37 +638,44 @@ fun VocabularyCard(item: VocabularyItem, onSpeak: () -> Unit) {
         }
 
         // Action buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             // Copy button
             IconButton(
                 onClick = {
                     clipboardManager.setText(AnnotatedString(item.character))
                 },
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(GoldAccent.copy(alpha = 0.15f))
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     Icons.Default.ContentCopy,
-                    contentDescription = "Copy ${item.character}",
-                    tint = GoldAccent,
-                    modifier = Modifier.size(18.dp)
+                    contentDescription = "Copy",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
             // Speak button
             IconButton(
                 onClick = onSpeak,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(GoldAccent.copy(alpha = 0.15f))
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.VolumeUp,
-                    contentDescription = "Pronounce ${item.character}",
-                    tint = GoldAccent,
+                    contentDescription = "Pronounce",
+                    tint = TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            // Save button
+            IconButton(
+                onClick = onSaveToggle,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                    contentDescription = if (isSaved) "Remove from saved" else "Save vocabulary",
+                    tint = if (isSaved) GoldAccent else TextSecondary,
                     modifier = Modifier.size(18.dp)
                 )
             }
