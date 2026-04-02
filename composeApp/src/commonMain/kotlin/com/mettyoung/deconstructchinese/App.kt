@@ -7,7 +7,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,19 +19,11 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CollectionsBookmark
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -42,14 +33,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -62,12 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,20 +58,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.TranslationState
-import com.mettyoung.deconstructchinese.model.VocabularyItem
+import com.mettyoung.deconstructchinese.ui.components.TranslationResultCard
+import com.mettyoung.deconstructchinese.ui.screens.VocabularyScreen
+import com.mettyoung.deconstructchinese.ui.theme.*
 import com.mettyoung.deconstructchinese.viewmodel.TranslatorViewModel
-
-// ── Colors ────────────────────────────────────────────────────────────────────
-private val RedPrimary     = Color(0xFFD32F2F)
-private val GoldAccent     = Color(0xFFF9A825)
-private val BackgroundDark = Color(0xFF1A1A2E)
-private val SurfaceDark    = Color(0xFF16213E)
-private val CardDark       = Color(0xFF0F3460)
-private val TextPrimary    = Color(0xFFF5F5F5)
-private val TextSecondary  = Color(0xFFB0BEC5)
-private val PinyinColor    = Color(0xFF80CBC4)
 
 @Composable
 @Preview
@@ -99,7 +73,7 @@ fun App() {
             secondary  = GoldAccent,
             background = BackgroundDark,
             surface    = SurfaceDark,
-            onPrimary  = Color.White,
+            onPrimary  = androidx.compose.ui.graphics.Color.White,
             onBackground = TextPrimary,
             onSurface  = TextPrimary,
         )
@@ -224,7 +198,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     }
 
     if (showCollection) {
-        CollectionScreen(
+        VocabularyScreen(
             vocabulary = savedVocab,
             onDismiss = { showCollection = false },
             onRemove = { viewModel.removeWord(it) },
@@ -322,7 +296,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                         if (translationState is TranslationState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = Color.White,
+                                color = androidx.compose.ui.graphics.Color.White,
                                 strokeWidth = 2.dp
                             )
                             Spacer(Modifier.width(8.dp))
@@ -359,353 +333,9 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                         onSaveWord = { viewModel.saveWord(it) },
                         onRemoveWord = { viewModel.removeWord(it) }
                     )
-                    is TranslationState.Error -> ErrorCard(state.message)
+                    is TranslationState.Error -> com.mettyoung.deconstructchinese.ui.components.ErrorCard(state.message)
                     else -> {}
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun CollectionScreen(
-    vocabulary: List<VocabularyItem>,
-    onDismiss: () -> Unit,
-    onRemove: (VocabularyItem) -> Unit,
-    onSpeak: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-            .safeDrawingPadding()
-            .padding(horizontal = 16.dp, vertical = 24.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    "My Vocabulary",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("${vocabulary.size} words saved", color = GoldAccent, fontSize = 14.sp)
-            }
-            
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Refresh, contentDescription = "Back", tint = TextPrimary)
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        if (vocabulary.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No vocabulary saved yet.", color = TextSecondary)
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                vocabulary.forEach { item ->
-                    VocabularyCard(
-                        item = item,
-                        isSaved = true,
-                        onSpeak = { onSpeak(item.character) },
-                        onSaveToggle = { onRemove(item) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TranslationResultCard(
-    result: TranslationResult,
-    isPlaying: Boolean,
-    savedVocab: List<VocabularyItem>,
-    onSpeak: () -> Unit,
-    onStop: () -> Unit,
-    onSpeakWord: (String) -> Unit,
-    onSaveWord: (VocabularyItem) -> Unit,
-    onRemoveWord: (VocabularyItem) -> Unit
-) {
-    val clipboardManager = LocalClipboardManager.current
-
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-        // Main translation
-        Card(
-            colors = CardDefaults.cardColors(containerColor = CardDark),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Text("Chinese", color = GoldAccent,
-                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconButton(
-                            onClick = {
-                                clipboardManager.setText(AnnotatedString(result.chineseText))
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.ContentCopy,
-                                contentDescription = "Copy Chinese text",
-                                tint = GoldAccent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        FilledTonalButton(
-                            onClick = { if (isPlaying) onStop() else onSpeak() },
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = if (isPlaying)
-                                    RedPrimary
-                                else
-                                    GoldAccent.copy(alpha = 0.2f),
-                                contentColor = if (isPlaying)
-                                    Color.White
-                                else
-                                    GoldAccent
-                            )
-                        ) {
-                            Icon(
-                                if (isPlaying) Icons.Default.Stop
-                                else Icons.AutoMirrored.Filled.VolumeUp,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(if (isPlaying) "Stop" else "Listen",
-                                fontSize = 13.sp)
-                        }
-                    }
-                }
-
-                // Chinese characters (large)
-                Text(
-                    text = result.chineseText,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    lineHeight = 44.sp
-                )
-
-                // Pinyin
-                Text(
-                    text = result.pinyinText,
-                    fontSize = 18.sp,
-                    color = PinyinColor,
-                    fontWeight = FontWeight.Medium
-                )
-
-                HorizontalDivider(color = TextSecondary.copy(alpha = 0.2f))
-
-                // Original English
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("EN", color = TextSecondary, fontSize = 12.sp)
-                    Text(result.originalText,
-                        color = TextSecondary, fontSize = 15.sp)
-                }
-            }
-        }
-
-        // Grammar note
-        if (result.grammarNote.isNotBlank()) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1B3A4B)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    Modifier.padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Column {
-                        Text("Grammar Note",
-                            color = Color(0xFF4FC3F7),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(4.dp))
-                        Text(result.grammarNote,
-                            color = TextSecondary,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp)
-                    }
-                }
-            }
-        }
-
-        // Vocabulary breakdown
-        Card(
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Vocabulary Breakdown",
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp)
-
-                Spacer(Modifier.height(4.dp))
-
-                result.vocabulary.forEach { item ->
-                    val isSaved = savedVocab.any { it.character == item.character }
-                    VocabularyCard(
-                        item = item,
-                        isSaved = isSaved,
-                        onSpeak = { onSpeakWord(item.character) },
-                        onSaveToggle = {
-                            if (isSaved) onRemoveWord(item) else onSaveWord(item)
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun VocabularyCard(
-    item: VocabularyItem, 
-    isSaved: Boolean = false,
-    onSpeak: () -> Unit,
-    onSaveToggle: () -> Unit
-) {
-    val clipboardManager = LocalClipboardManager.current
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(CardDark)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Character box
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(RedPrimary.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = item.character,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        // Pinyin + meaning
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(item.pinyin,
-                color = PinyinColor,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium)
-            Text(item.meaning,
-                color = TextSecondary,
-                fontSize = 13.sp)
-        }
-
-        // Action buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            // Copy button
-            IconButton(
-                onClick = {
-                    clipboardManager.setText(AnnotatedString(item.character))
-                },
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    Icons.Default.ContentCopy,
-                    contentDescription = "Copy",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-
-            // Speak button
-            IconButton(
-                onClick = onSpeak,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.VolumeUp,
-                    contentDescription = "Pronounce",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            // Save button
-            IconButton(
-                onClick = onSaveToggle,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    contentDescription = if (isSaved) "Remove from saved" else "Save vocabulary",
-                    tint = if (isSaved) GoldAccent else TextSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ErrorCard(message: String) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF3E1B1B)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Icon(Icons.Default.ErrorOutline,
-                contentDescription = null,
-                tint = Color(0xFFFF6659))
-            Column {
-                Text("Translation Error",
-                    color = Color(0xFFFF6659),
-                    fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                Text(message,
-                    color = TextSecondary,
-                    fontSize = 14.sp)
             }
         }
     }
