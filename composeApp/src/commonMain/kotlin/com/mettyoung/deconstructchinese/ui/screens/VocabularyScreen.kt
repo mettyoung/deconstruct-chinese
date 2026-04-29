@@ -83,7 +83,7 @@ fun VocabularyScreen(
                     VocabularyCard(
                         item = item,
                         isSaved = true,
-                        onSpeak = { onSpeak(item.character) },
+                        onSpeak = { onSpeak(item.word) },
                         onSaveToggle = { onRemove(item) }
                     )
                 }

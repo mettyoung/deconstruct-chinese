@@ -76,7 +76,7 @@ fun TranslationResultCard(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         IconButton(
                             onClick = {
-                                clipboardManager.setText(AnnotatedString(result.chineseText))
+                                clipboardManager.setText(AnnotatedString(result.translatedText))
                             },
                             modifier = Modifier.size(32.dp)
                         ) {
@@ -116,7 +116,7 @@ fun TranslationResultCard(
 
                 // Chinese characters (large)
                 Text(
-                    text = result.chineseText,
+                    text = result.translatedText,
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
@@ -125,7 +125,7 @@ fun TranslationResultCard(
 
                 // Pinyin
                 Text(
-                    text = result.pinyinText,
+                    text = result.phoneticText,
                     fontSize = 18.sp,
                     color = PinyinColor,
                     fontWeight = FontWeight.Medium
@@ -185,11 +185,11 @@ fun TranslationResultCard(
                 Spacer(Modifier.height(4.dp))
 
                 result.vocabulary.forEach { item ->
-                    val isSaved = savedVocab.any { it.character == item.character }
+                    val isSaved = savedVocab.any { it.word == item.word }
                     VocabularyCard(
                         item = item,
                         isSaved = isSaved,
-                        onSpeak = { onSpeakWord(item.character) },
+                        onSpeak = { onSpeakWord(item.word) },
                         onSaveToggle = {
                             if (isSaved) onRemoveWord(item) else onSaveWord(item)
                         }

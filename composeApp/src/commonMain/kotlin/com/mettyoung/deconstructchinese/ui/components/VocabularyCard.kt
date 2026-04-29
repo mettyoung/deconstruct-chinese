@@ -64,7 +64,7 @@ fun VocabularyCard(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = item.character,
+                text = item.word,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
@@ -79,7 +79,7 @@ fun VocabularyCard(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(item.pinyin,
+            Text(item.phonetic,
                 color = PinyinColor,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium)
@@ -93,7 +93,7 @@ fun VocabularyCard(
             // Copy button
             IconButton(
                 onClick = {
-                    clipboardManager.setText(AnnotatedString(item.character))
+                    clipboardManager.setText(AnnotatedString(item.word))
                 },
                 modifier = Modifier.size(32.dp)
             ) {

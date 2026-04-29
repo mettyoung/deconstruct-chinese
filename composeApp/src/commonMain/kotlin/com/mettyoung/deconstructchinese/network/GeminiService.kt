@@ -1,5 +1,6 @@
 package com.mettyoung.deconstructchinese.network
 
+import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import io.ktor.client.*
@@ -50,13 +51,21 @@ class GeminiService(private val apiKey: String) {
     private val baseUrl =
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 
-    suspend fun translate(englishText: String): TranslationResult {
-        val prompt = buildPrompt(englishText)
+    suspend fun translate(
+        text: String,
+        sourceLanguage: Language,
+        targetLanguage: Language
+    ): TranslationResult {
+        val prompt = buildPrompt(text, sourceLanguage, targetLanguage)
 
         val response: HttpResponse = client.post(baseUrl) {
             url { parameters.append("key", apiKey) }
             contentType(ContentType.Application.Json)
             setBody(GeminiRequest(listOf(Content(listOf(Part(prompt))))))
+        }
+
+        if (!response.status.isSuccess()) {
+            throw Exception("Gemini API error: ${response.status}")
         }
 
         val body: GeminiResponse = response.body()
@@ -69,40 +78,41 @@ class GeminiService(private val apiKey: String) {
             ?.text
             ?: throw Exception("Empty response from Gemini")
 
-        return parseGeminiResponse(rawText, englishText)
+        return parseGeminiResponse(rawText, text, sourceLanguage, targetLanguage)
     }
 
-    private fun buildPrompt(englishText: String): String {
+    private fun buildPrompt(text: String, sourceLanguage: Language, targetLanguage: Language): String {
         return """
-You are a Chinese language teacher. Translate the following English text to Traditional Chinese.
+You are a professional translator and language teacher. Translate from ${sourceLanguage.displayName} to ${targetLanguage.displayName}.
 Respond ONLY with a valid JSON object, no markdown, no extra text.
 
-English: "$englishText"
+Text: "$text"
 
 Return this exact JSON structure:
 {
-  "chineseText": "the full Chinese translation",
-  "pinyinText": "full pinyin with tone marks for the whole sentence",
+  "translatedText": "the full translation",
+  "phoneticText": "phonetic transcription (like pinyin for Chinese, furigana for Japanese, etc.)",
   "grammarNote": "one sentence explaining the grammar structure",
   "vocabulary": [
     {
-      "character": "Chinese character or word",
-      "pinyin": "pinyin with tone marks",
-      "meaning": "English meaning"
+      "word": "a key word or phrase from the translated text",
+      "phonetic": "phonetic transcription",
+      "meaning": "meaning in ${sourceLanguage.displayName}"
     }
   ]
 }
 
 Rules:
-- Use proper tone marks in pinyin (ā á ǎ à etc.)
-- Keep grammarNote short and educational
+- If the target language doesn't typically use phonetic transcription (like English or Spanish), leave "phoneticText" and "phonetic" empty or use standard IPA.
 - Return ONLY the JSON, nothing else
         """.trimIndent()
     }
 
     private fun parseGeminiResponse(
         rawText: String,
-        originalText: String
+        originalText: String,
+        sourceLanguage: Language,
+        targetLanguage: Language
     ): TranslationResult {
         val cleanJson = rawText
             .removePrefix("```json")
@@ -114,15 +124,15 @@ Rules:
 
         @Serializable
         data class VocabDto(
-            val character: String,
-            val pinyin: String,
+            val word: String,
+            val phonetic: String,
             val meaning: String
         )
 
         @Serializable
         data class GeminiTranslation(
-            val chineseText: String,
-            val pinyinText: String,
+            val translatedText: String,
+            val phoneticText: String,
             val grammarNote: String = "",
             val vocabulary: List<VocabDto>
         )
@@ -131,12 +141,14 @@ Rules:
 
         return TranslationResult(
             originalText = originalText,
-            chineseText = parsed.chineseText,
-            pinyinText = parsed.pinyinText,
+            translatedText = parsed.translatedText,
+            phoneticText = parsed.phoneticText,
             grammarNote = parsed.grammarNote,
             vocabulary = parsed.vocabulary.map {
-                VocabularyItem(it.character, it.pinyin, it.meaning)
-            }
+                VocabularyItem(it.word, it.phonetic, it.meaning)
+            },
+            sourceLanguage = sourceLanguage,
+            targetLanguage = targetLanguage
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.mettyoung.deconstructchinese.network
 
+import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import io.ktor.client.*
@@ -13,15 +14,12 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlin.String
-
-// ── Qwen API wire format ─────────────────────────────────────────────
 
 @Serializable
 data class QwenRequest(
     val model: String = "qwen-plus",
     val messages: List<QwenMessage>,
-    val parameters: QwenParameters? = null
+    val temperature: Double = 0.0
 )
 
 @Serializable
@@ -31,13 +29,9 @@ data class QwenMessage(
 )
 
 @Serializable
-data class QwenParameters(
-    val result_format: String = "message"
-)
-
-@Serializable
 data class QwenResponse(
-    val choices: List<QwenChoice>? = null
+    val choices: List<QwenChoice>? = null,
+    val id: String? = null
 )
 
 @Serializable
@@ -46,17 +40,17 @@ data class QwenChoice(
     val finish_reason: String? = null
 )
 
-// ── The service class ──────────────────────────────────────────────────
-
 class QwenService(private val apiKey: String) {
+
+    private val jsonConfig = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        encodeDefaults = true 
+    }
 
     private val client = HttpClient {
         install(ContentNegotiation) {
-            json(Json {
-                encodeDefaults = true
-                ignoreUnknownKeys = true
-                isLenient = true
-            })
+            json(jsonConfig)
         }
         install(Logging) {
             level = LogLevel.NONE
@@ -65,19 +59,21 @@ class QwenService(private val apiKey: String) {
 
     private val baseUrl = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
 
-    suspend fun translate(englishText: String): TranslationResult {
-        val systemPrompt = "You are a Chinese language teacher. Translate to Traditional Chinese. Respond ONLY with valid JSON."
-        val userPrompt = buildPrompt(englishText)
+    suspend fun translate(
+        text: String,
+        sourceLanguage: Language,
+        targetLanguage: Language
+    ): TranslationResult {
+        val systemPrompt = "You are a professional translator and language teacher. Translate from ${sourceLanguage.displayName} to ${targetLanguage.displayName}. Respond ONLY with valid JSON."
+        val userPrompt = buildPrompt(text, sourceLanguage, targetLanguage)
         
         val requestBody = QwenRequest(
             messages = listOf(
                 QwenMessage("system", systemPrompt),
                 QwenMessage("user", userPrompt)
-            ),
-            parameters = QwenParameters(result_format = "message")
+            )
         )
 
-        // Log the curl command
         logCurl(requestBody)
 
         val response: HttpResponse = client.post(baseUrl) {
@@ -99,12 +95,11 @@ class QwenService(private val apiKey: String) {
             ?.content
             ?: throw Exception("Empty response from Qwen")
 
-        return parseQwenResponse(rawText, englishText)
+        return parseQwenResponse(rawText, text, sourceLanguage, targetLanguage)
     }
 
     private fun logCurl(requestBody: QwenRequest) {
-        val json = Json { prettyPrint = true }
-        val bodyString = json.encodeToString(requestBody)
+        val bodyString = jsonConfig.encodeToString(requestBody)
         val curl = """
             curl "$baseUrl" \
             -H "Authorization: Bearer $apiKey" \
@@ -117,35 +112,36 @@ class QwenService(private val apiKey: String) {
         println("────────────────────────────────────────────────────────────────")
     }
 
-    private fun buildPrompt(englishText: String): String {
+    private fun buildPrompt(text: String, sourceLanguage: Language, targetLanguage: Language): String {
         return """
-Translate the following English text to Traditional Chinese.
-English: "$englishText"
+Translate the following text from ${sourceLanguage.displayName} to ${targetLanguage.displayName}.
+Text: "$text"
 
 Return this exact JSON structure:
 {
-  "chineseText": "the full Chinese translation",
-  "pinyinText": "full pinyin with tone marks for the whole sentence",
-  "grammarNote": "one sentence explaining the grammar structure in english",
+  "translatedText": "the full translation in ${targetLanguage.displayName}",
+  "phoneticText": "phonetic transcription (like pinyin for Chinese, furigana for Japanese, etc.)",
+  "grammarNote": "one sentence explaining the grammar structure in ${sourceLanguage.displayName}",
   "vocabulary": [
     {
-      "character": "Chinese character or word",
-      "pinyin": "pinyin with tone marks",
-      "meaning": "English meaning"
+      "word": "a key word or phrase from the translated text",
+      "phonetic": "phonetic transcription of this word",
+      "meaning": "meaning in ${sourceLanguage.displayName}"
     }
   ]
 }
 
 Rules:
-- Use proper tone marks in pinyin (ā á ǎ à etc.)
-- Keep grammarNote short and educational
-- Return ONLY the JSON, nothing else
+- If the target language doesn't typically use phonetic transcription (like English or Spanish), leave "phoneticText" and "phonetic" empty or use standard IPA.
+- Return ONLY the JSON, nothing else.
         """.trimIndent()
     }
 
     private fun parseQwenResponse(
         rawText: String,
-        originalText: String
+        originalText: String,
+        sourceLanguage: Language,
+        targetLanguage: Language
     ): TranslationResult {
         val cleanJson = rawText
             .removePrefix("```json")
@@ -153,33 +149,33 @@ Rules:
             .removeSuffix("```")
             .trim()
 
-        val json = Json { ignoreUnknownKeys = true; isLenient = true }
-
         @Serializable
         data class VocabDto(
-            val character: String,
-            val pinyin: String,
+            val word: String,
+            val phonetic: String,
             val meaning: String
         )
 
         @Serializable
         data class QwenTranslation(
-            val chineseText: String,
-            val pinyinText: String,
+            val translatedText: String,
+            val phoneticText: String,
             val grammarNote: String = "",
             val vocabulary: List<VocabDto>
         )
 
-        val parsed = json.decodeFromString<QwenTranslation>(cleanJson)
+        val parsed = jsonConfig.decodeFromString<QwenTranslation>(cleanJson)
 
         return TranslationResult(
             originalText = originalText,
-            chineseText = parsed.chineseText,
-            pinyinText = parsed.pinyinText,
+            translatedText = parsed.translatedText,
+            phoneticText = parsed.phoneticText,
             grammarNote = parsed.grammarNote,
             vocabulary = parsed.vocabulary.map {
-                VocabularyItem(it.character, it.pinyin, it.meaning)
-            }
+                VocabularyItem(it.word, it.phonetic, it.meaning)
+            },
+            sourceLanguage = sourceLanguage,
+            targetLanguage = targetLanguage
         )
     }
 }

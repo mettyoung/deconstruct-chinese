@@ -327,7 +327,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                         result    = state.result,
                         isPlaying = isPlaying,
                         savedVocab = savedVocab,
-                        onSpeak   = { viewModel.speakChinese() },
+                        onSpeak   = { viewModel.speakTranslation() },
                         onStop    = { viewModel.stopAudio() },
                         onSpeakWord = { viewModel.speakWord(it) },
                         onSaveWord = { viewModel.saveWord(it) },

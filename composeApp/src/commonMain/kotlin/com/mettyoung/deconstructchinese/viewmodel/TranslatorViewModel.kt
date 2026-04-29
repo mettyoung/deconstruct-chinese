@@ -3,6 +3,7 @@ package com.mettyoung.deconstructchinese.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mettyoung.deconstructchinese.audio.AudioPlayer
+import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.QwenService
@@ -25,6 +26,12 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     private val _inputText = MutableStateFlow("")
     val inputText: StateFlow<String> = _inputText.asStateFlow()
 
+    private val _sourceLanguage = MutableStateFlow(Language.ENGLISH)
+    val sourceLanguage: StateFlow<Language> = _sourceLanguage.asStateFlow()
+
+    private val _targetLanguage = MutableStateFlow(Language.CHINESE_TRADITIONAL)
+    val targetLanguage: StateFlow<Language> = _targetLanguage.asStateFlow()
+
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
@@ -37,6 +44,14 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         }
     }
 
+    fun onSourceLanguageChange(language: Language) {
+        _sourceLanguage.value = language
+    }
+
+    fun onTargetLanguageChange(language: Language) {
+        _targetLanguage.value = language
+    }
+
     fun translate() {
         val text = _inputText.value.trim()
         if (text.isEmpty()) return
@@ -45,7 +60,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
             _translationState.value = TranslationState.Loading
 
             try {
-                val result = qwenService.translate(text)
+                val result = qwenService.translate(text, _sourceLanguage.value, _targetLanguage.value)
                 _translationState.value = TranslationState.Success(result)
             } catch (e: Exception) {
                 _translationState.value = TranslationState.Error(
@@ -63,11 +78,11 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         }
     }
 
-    fun speakChinese() {
+    fun speakTranslation() {
         val state = _translationState.value
         if (state is TranslationState.Success) {
             _isPlaying.value = true
-            audioPlayer.speak(state.result.chineseText, "zh-CN")
+            audioPlayer.speak(state.result.translatedText, state.result.targetLanguage.code)
             viewModelScope.launch {
                 kotlinx.coroutines.delay(3000)
                 _isPlaying.value = false
@@ -76,7 +91,14 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     }
 
     fun speakWord(word: String) {
-        audioPlayer.speak(word, "zh-CN")
+        val state = _translationState.value
+        if (state is TranslationState.Success) {
+            audioPlayer.speak(word, state.result.targetLanguage.code)
+        } else {
+            // Fallback for saved vocabulary where we don't have the context of the current target language
+            // For now, default to Chinese Traditional as it was the original focus
+            audioPlayer.speak(word, Language.CHINESE_TRADITIONAL.code)
+        }
     }
 
     fun stopAudio() {
@@ -98,8 +120,8 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         VocabularyStore.removeWord(item)
     }
 
-    fun isSaved(character: String): Boolean {
-        return VocabularyStore.isSaved(character)
+    fun isSaved(word: String): Boolean {
+        return VocabularyStore.isSaved(word)
     }
 
     override fun onCleared() {
