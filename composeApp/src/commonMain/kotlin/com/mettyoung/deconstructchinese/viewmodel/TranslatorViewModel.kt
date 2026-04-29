@@ -61,6 +61,11 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
 
             try {
                 val result = qwenService.translate(text, _sourceLanguage.value, _targetLanguage.value)
+                result.vocabulary.forEach { item ->
+                    if (VocabularyStore.isSaved(item.word)) {
+                        VocabularyStore.bumpFrequency(item.word)
+                    }
+                }
                 _translationState.value = TranslationState.Success(result)
             } catch (e: Exception) {
                 _translationState.value = TranslationState.Error(

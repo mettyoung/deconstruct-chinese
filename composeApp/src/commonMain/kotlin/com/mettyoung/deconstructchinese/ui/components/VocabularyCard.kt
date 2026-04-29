@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.VocabularyItem
+import com.mettyoung.deconstructchinese.ui.theme.BackgroundDark
 import com.mettyoung.deconstructchinese.ui.theme.CardDark
 import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
 import com.mettyoung.deconstructchinese.ui.theme.PinyinColor
@@ -56,20 +58,39 @@ fun VocabularyCard(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Character box
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(RedPrimary.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = item.word,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                textAlign = TextAlign.Center
-            )
+        Box(modifier = Modifier.size(52.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(RedPrimary.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = item.word,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    textAlign = TextAlign.Center
+                )
+            }
+            if (item.frequency > 0) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .align(Alignment.TopEnd)
+                        .clip(CircleShape)
+                        .background(GoldAccent),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${item.frequency}",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BackgroundDark
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.width(12.dp))

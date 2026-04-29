@@ -18,7 +18,8 @@ enum class Language(val displayName: String, val code: String) {
 data class VocabularyItem(
     val word: String,
     val phonetic: String,
-    val meaning: String
+    val meaning: String,
+    val frequency: Int = 0
 )
 
 @Serializable
