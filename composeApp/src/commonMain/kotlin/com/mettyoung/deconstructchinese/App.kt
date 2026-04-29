@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Translate
@@ -60,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -284,6 +286,8 @@ fun TranslateTab(
     onRemoveWord: (VocabularyItem) -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val clipboardManager = LocalClipboardManager.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -373,22 +377,43 @@ fun TranslateTab(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
-                            onClick  = onTranslate,
-                            enabled  = inputText.isNotBlank() && translationState !is TranslationState.Loading,
-                            colors   = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                            modifier = Modifier.padding(end = 8.dp, bottom = 4.dp)
-                        ) {
-                            if (translationState is TranslationState.Loading) {
+                        when {
+                            translationState is TranslationState.Loading -> Row(
+                                modifier = Modifier.padding(end = 16.dp, bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 CircularProgressIndicator(
                                     modifier    = Modifier.size(16.dp),
-                                    color       = Color.White,
+                                    color       = BluePrimary,
                                     strokeWidth = 2.dp
                                 )
-                                Spacer(Modifier.width(8.dp))
-                                Text("Translating...")
-                            } else {
-                                Text(if (apiKey.isBlank()) "Enter API Key" else "Translate")
+                                Text("Translating...", color = TextSecondary, fontSize = 14.sp)
+                            }
+                            inputText.isEmpty() -> TextButton(
+                                onClick  = {
+                                    val pasted = clipboardManager.getText()?.text.orEmpty()
+                                    if (pasted.isNotEmpty()) onInputChange(pasted)
+                                },
+                                modifier = Modifier.padding(end = 8.dp, bottom = 4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentPaste,
+                                    contentDescription = null,
+                                    tint     = BluePrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text("Paste", color = BluePrimary)
+                            }
+                            else -> TextButton(
+                                onClick  = onTranslate,
+                                modifier = Modifier.padding(end = 8.dp, bottom = 4.dp)
+                            ) {
+                                Text(
+                                    if (apiKey.isBlank()) "Enter API Key" else "Translate",
+                                    color = BluePrimary
+                                )
                             }
                         }
                     }

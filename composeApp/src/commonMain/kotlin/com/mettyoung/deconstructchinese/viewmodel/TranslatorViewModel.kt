@@ -8,6 +8,8 @@ import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.QwenService
 import com.mettyoung.deconstructchinese.storage.VocabularyStore
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,16 +33,25 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
 
     val savedVocabulary = VocabularyStore.savedVocabulary
 
+    private var translateJob: Job? = null
+
     fun onInputTextChange(newText: String) {
         _inputText.value = newText
         if (_translationState.value is TranslationState.Success) {
             _translationState.value = TranslationState.Idle
         }
+        translateJob?.cancel()
+        if (newText.isNotBlank()) {
+            translateJob = viewModelScope.launch {
+                delay(800L)
+                translate()
+            }
+        }
     }
 
     fun translate() {
         val text = _inputText.value.trim()
-        if (text.isEmpty()) return
+        if (text.isEmpty() || _translationState.value is TranslationState.Loading) return
 
         viewModelScope.launch {
             _translationState.value = TranslationState.Loading
@@ -98,6 +109,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     }
 
     fun clearAll() {
+        translateJob?.cancel()
         stopAudio()
         _inputText.value = ""
         _translationState.value = TranslationState.Idle
