@@ -3,6 +3,8 @@ package com.mettyoung.deconstructchinese.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,12 +32,41 @@ import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.ui.theme.Background
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
-import com.mettyoung.deconstructchinese.ui.theme.Card
 import com.mettyoung.deconstructchinese.ui.theme.Divider
 import com.mettyoung.deconstructchinese.ui.theme.PinyinColor
 import com.mettyoung.deconstructchinese.ui.theme.Surface
 import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
 import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChineseWithPinyin(vocabulary: List<VocabularyItem>, modifier: Modifier = Modifier) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        vocabulary.forEach { item ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text       = item.phonetic,
+                    fontSize   = 13.sp,
+                    color      = PinyinColor,
+                    fontWeight = FontWeight.Normal
+                )
+                Text(
+                    text       = item.word,
+                    fontSize   = 34.sp,
+                    fontWeight = FontWeight.Normal,
+                    color      = TextPrimary,
+                    lineHeight = 42.sp
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun TranslationResultCard(
@@ -94,28 +125,14 @@ fun TranslationResultCard(
             }
         }
 
-        // Chinese text + pinyin
-        Column(
-            modifier = Modifier
+        // Chinese characters with pinyin aligned above each word
+        ChineseWithPinyin(
+            vocabulary = result.vocabulary,
+            modifier   = Modifier
                 .fillMaxWidth()
                 .background(Surface)
-                .padding(start = 16.dp, end = 16.dp, bottom = if (toEnglish) 12.dp else 20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text       = result.chineseText,
-                fontSize   = 40.sp,
-                fontWeight = FontWeight.Normal,
-                color      = TextPrimary,
-                lineHeight = 52.sp
-            )
-            Text(
-                text       = result.phoneticText,
-                fontSize   = 18.sp,
-                color      = PinyinColor,
-                fontWeight = FontWeight.Normal
-            )
-        }
+                .padding(start = 14.dp, end = 14.dp, bottom = if (toEnglish) 8.dp else 16.dp)
+        )
 
         // English translation (only in Chinese→English mode)
         if (toEnglish) {
