@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -31,11 +32,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.VocabularyItem
-import com.mettyoung.deconstructchinese.ui.theme.BackgroundDark
-import com.mettyoung.deconstructchinese.ui.theme.CardDark
+import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
+import com.mettyoung.deconstructchinese.ui.theme.Card
 import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
 import com.mettyoung.deconstructchinese.ui.theme.PinyinColor
-import com.mettyoung.deconstructchinese.ui.theme.RedPrimary
 import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
 import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 
@@ -52,7 +52,7 @@ fun VocabularyCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(CardDark)
+            .background(Card)
             .padding(12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -63,14 +63,14 @@ fun VocabularyCard(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(RedPrimary.copy(alpha = 0.15f)),
+                    .background(BluePrimary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = item.word,
-                    fontSize = 20.sp,
+                    text      = item.word,
+                    fontSize  = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
+                    color     = TextPrimary,
                     textAlign = TextAlign.Center
                 )
             }
@@ -84,10 +84,10 @@ fun VocabularyCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "${item.frequency}",
-                        fontSize = 9.sp,
+                        text      = "${item.frequency}",
+                        fontSize  = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color = BackgroundDark
+                        color     = Color(0xFF202124)
                     )
                 }
             }
@@ -100,54 +100,26 @@ fun VocabularyCard(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(item.phonetic,
-                color = PinyinColor,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium)
-            Text(item.meaning,
-                color = TextSecondary,
-                fontSize = 13.sp)
+            Text(item.phonetic, color = PinyinColor, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Text(item.meaning, color = TextSecondary, fontSize = 13.sp)
         }
 
         // Action buttons
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            // Copy button
             IconButton(
-                onClick = {
-                    clipboardManager.setText(AnnotatedString(item.word))
-                },
+                onClick  = { clipboardManager.setText(AnnotatedString(item.word)) },
                 modifier = Modifier.size(32.dp)
             ) {
-                Icon(
-                    Icons.Default.ContentCopy,
-                    contentDescription = "Copy",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(16.dp)
-                )
+                Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = TextSecondary, modifier = Modifier.size(16.dp))
             }
-
-            // Speak button
-            IconButton(
-                onClick = onSpeak,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.VolumeUp,
-                    contentDescription = "Pronounce",
-                    tint = TextSecondary,
-                    modifier = Modifier.size(18.dp)
-                )
+            IconButton(onClick = onSpeak, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Pronounce", tint = TextSecondary, modifier = Modifier.size(18.dp))
             }
-
-            // Save button
-            IconButton(
-                onClick = onSaveToggle,
-                modifier = Modifier.size(32.dp)
-            ) {
+            IconButton(onClick = onSaveToggle, modifier = Modifier.size(32.dp)) {
                 Icon(
                     if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                     contentDescription = if (isSaved) "Remove from saved" else "Save vocabulary",
-                    tint = if (isSaved) GoldAccent else TextSecondary,
+                    tint     = if (isSaved) GoldAccent else TextSecondary,
                     modifier = Modifier.size(18.dp)
                 )
             }

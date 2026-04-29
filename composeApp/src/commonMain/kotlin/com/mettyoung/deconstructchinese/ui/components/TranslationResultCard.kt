@@ -1,5 +1,6 @@
 package com.mettyoung.deconstructchinese.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,19 +9,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,11 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.VocabularyItem
-import com.mettyoung.deconstructchinese.ui.theme.CardDark
-import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
+import com.mettyoung.deconstructchinese.ui.theme.Background
+import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
+import com.mettyoung.deconstructchinese.ui.theme.Card
+import com.mettyoung.deconstructchinese.ui.theme.Divider
 import com.mettyoung.deconstructchinese.ui.theme.PinyinColor
-import com.mettyoung.deconstructchinese.ui.theme.RedPrimary
-import com.mettyoung.deconstructchinese.ui.theme.SurfaceDark
+import com.mettyoung.deconstructchinese.ui.theme.Surface
 import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
 import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 
@@ -54,147 +50,113 @@ fun TranslationResultCard(
 ) {
     val clipboardManager = LocalClipboardManager.current
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
 
-        // Main translation
-        Card(
-            colors = CardDefaults.cardColors(containerColor = CardDark),
-            modifier = Modifier.fillMaxWidth()
+        // Output header: language label + actions
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Surface)
+                .padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+            Text(
+                "Traditional Chinese",
+                color = BluePrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+            Row {
+                IconButton(
+                    onClick  = { clipboardManager.setText(AnnotatedString(result.translatedText)) },
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    Text("Chinese", color = GoldAccent,
-                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconButton(
-                            onClick = {
-                                clipboardManager.setText(AnnotatedString(result.translatedText))
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.ContentCopy,
-                                contentDescription = "Copy Chinese text",
-                                tint = GoldAccent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        FilledTonalButton(
-                            onClick = { if (isPlaying) onStop() else onSpeak() },
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = if (isPlaying)
-                                    RedPrimary
-                                else
-                                    GoldAccent.copy(alpha = 0.2f),
-                                contentColor = if (isPlaying)
-                                    Color.White
-                                else
-                                    GoldAccent
-                            )
-                        ) {
-                            Icon(
-                                if (isPlaying) Icons.Default.Stop
-                                else Icons.AutoMirrored.Filled.VolumeUp,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(if (isPlaying) "Stop" else "Listen",
-                                fontSize = 13.sp)
-                        }
-                    }
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy",
+                        tint     = TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-
-                // Chinese characters (large)
-                Text(
-                    text = result.translatedText,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    lineHeight = 44.sp
-                )
-
-                // Pinyin
-                Text(
-                    text = result.phoneticText,
-                    fontSize = 18.sp,
-                    color = PinyinColor,
-                    fontWeight = FontWeight.Medium
-                )
-
-                HorizontalDivider(color = TextSecondary.copy(alpha = 0.2f))
-
-                // Original English
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("EN", color = TextSecondary, fontSize = 12.sp)
-                    Text(result.originalText,
-                        color = TextSecondary, fontSize = 15.sp)
+                IconButton(
+                    onClick  = { if (isPlaying) onStop() else onSpeak() },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        if (isPlaying) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                        contentDescription = if (isPlaying) "Stop" else "Listen",
+                        tint     = if (isPlaying) BluePrimary else TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
+
+        // Translated text + phonetic
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Surface)
+                .padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text       = result.translatedText,
+                fontSize   = 40.sp,
+                fontWeight = FontWeight.Normal,
+                color      = TextPrimary,
+                lineHeight = 52.sp
+            )
+            Text(
+                text       = result.phoneticText,
+                fontSize   = 18.sp,
+                color      = PinyinColor,
+                fontWeight = FontWeight.Normal
+            )
+        }
+
+        HorizontalDivider(color = Divider)
 
         // Grammar note
         if (result.grammarNote.isNotBlank()) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1B3A4B)),
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFE8F0FE))
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
-                Row(
-                    Modifier.padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Column {
-                        Text("Grammar Note",
-                            color = Color(0xFF4FC3F7),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(4.dp))
-                        Text(result.grammarNote,
-                            color = TextSecondary,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp)
-                    }
-                }
+                Text("Grammar Note", color = BluePrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(6.dp))
+                Text(result.grammarNote, color = TextSecondary, fontSize = 14.sp, lineHeight = 20.sp)
             }
+            HorizontalDivider(color = Divider)
         }
 
         // Vocabulary breakdown
-        Card(
-            colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Background)
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Vocabulary Breakdown",
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp)
-
-                Spacer(Modifier.height(4.dp))
-
-                result.vocabulary.forEach { item ->
-                    val isSaved = savedVocab.any { it.word == item.word }
-                    VocabularyCard(
-                        item = item,
-                        isSaved = isSaved,
-                        onSpeak = { onSpeakWord(item.word) },
-                        onSaveToggle = {
-                            if (isSaved) onRemoveWord(item) else onSaveWord(item)
-                        }
-                    )
-                }
+            Text(
+                "Word Breakdown",
+                color      = TextSecondary,
+                fontSize   = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(Modifier.height(4.dp))
+            result.vocabulary.forEach { item ->
+                val isSaved = savedVocab.any { it.word == item.word }
+                VocabularyCard(
+                    item         = item,
+                    isSaved      = isSaved,
+                    onSpeak      = { onSpeakWord(item.word) },
+                    onSaveToggle = { if (isSaved) onRemoveWord(item) else onSaveWord(item) }
+                )
             }
         }
     }

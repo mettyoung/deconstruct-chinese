@@ -25,26 +25,23 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 @Composable
 fun ErrorCard(message: String) {
     Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF3E1B1B)),
+        colors   = CardDefaults.cardColors(containerColor = Color(0xFFFCE8E6)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
+            verticalAlignment     = Alignment.Top
         ) {
-            Icon(Icons.Default.ErrorOutline,
+            Icon(
+                Icons.Default.ErrorOutline,
                 contentDescription = null,
-                tint = Color(0xFFFF6659))
+                tint = Color(0xFFD93025)
+            )
             Column {
-                Text("Translation Error",
-                    color = Color(0xFFFF6659),
-                    fontWeight = FontWeight.SemiBold)
+                Text("Translation Error", color = Color(0xFFD93025), fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
-                Text(message,
-                    color = TextSecondary,
-                    fontSize = 14.sp)
+                Text(message, color = TextSecondary, fontSize = 14.sp)
             }
         }
     }

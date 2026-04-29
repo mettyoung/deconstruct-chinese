@@ -10,13 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,46 +24,47 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.ui.components.VocabularyCard
-import com.mettyoung.deconstructchinese.ui.theme.BackgroundDark
+import com.mettyoung.deconstructchinese.ui.theme.Background
+import com.mettyoung.deconstructchinese.ui.theme.Divider
 import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
 import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
 import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 
 @Composable
 fun VocabularyScreen(
+    modifier: Modifier = Modifier,
     vocabulary: List<VocabularyItem>,
     onDismiss: () -> Unit,
     onRemove: (VocabularyItem) -> Unit,
     onSpeak: (String) -> Unit
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .background(BackgroundDark)
-            .safeDrawingPadding()
-            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .background(Background)
+            .statusBarsPadding()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Header
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 20.dp)
         ) {
-            Column {
-                Text(
-                    "My Vocabulary",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("${vocabulary.size} words saved", color = GoldAccent, fontSize = 14.sp)
-            }
-            
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Refresh, contentDescription = "Back", tint = TextPrimary)
-            }
+            Text(
+                "Saved",
+                style = MaterialTheme.typography.headlineSmall,
+                color = TextPrimary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "${vocabulary.size} words · ranked by frequency",
+                color = GoldAccent,
+                fontSize = 13.sp
+            )
         }
 
-        Spacer(Modifier.height(24.dp))
+        HorizontalDivider(color = Divider)
 
         if (vocabulary.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -76,17 +74,19 @@ fun VocabularyScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 vocabulary.forEach { item ->
                     VocabularyCard(
-                        item = item,
-                        isSaved = true,
-                        onSpeak = { onSpeak(item.word) },
+                        item         = item,
+                        isSaved      = true,
+                        onSpeak      = { onSpeak(item.word) },
                         onSaveToggle = { onRemove(item) }
                     )
                 }
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
