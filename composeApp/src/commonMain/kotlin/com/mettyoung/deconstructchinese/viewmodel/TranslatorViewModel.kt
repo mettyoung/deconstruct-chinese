@@ -26,12 +26,6 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     private val _inputText = MutableStateFlow("")
     val inputText: StateFlow<String> = _inputText.asStateFlow()
 
-    private val _sourceLanguage = MutableStateFlow(Language.ENGLISH)
-    val sourceLanguage: StateFlow<Language> = _sourceLanguage.asStateFlow()
-
-    private val _targetLanguage = MutableStateFlow(Language.CHINESE_TRADITIONAL)
-    val targetLanguage: StateFlow<Language> = _targetLanguage.asStateFlow()
-
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
@@ -44,14 +38,6 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         }
     }
 
-    fun onSourceLanguageChange(language: Language) {
-        _sourceLanguage.value = language
-    }
-
-    fun onTargetLanguageChange(language: Language) {
-        _targetLanguage.value = language
-    }
-
     fun translate() {
         val text = _inputText.value.trim()
         if (text.isEmpty()) return
@@ -60,7 +46,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
             _translationState.value = TranslationState.Loading
 
             try {
-                val result = qwenService.translate(text, _sourceLanguage.value, _targetLanguage.value)
+                val result = qwenService.translate(text, Language.ENGLISH, Language.CHINESE_TRADITIONAL)
                 result.vocabulary.forEach { item ->
                     if (VocabularyStore.isSaved(item.word)) {
                         VocabularyStore.bumpFrequency(item.word)
