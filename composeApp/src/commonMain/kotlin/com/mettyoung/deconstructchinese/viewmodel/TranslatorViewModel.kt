@@ -33,6 +33,9 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
 
     val savedVocabulary = VocabularyStore.savedVocabulary
 
+    private val _toEnglish = MutableStateFlow(false)
+    val toEnglish: StateFlow<Boolean> = _toEnglish.asStateFlow()
+
     private var translateJob: Job? = null
 
     fun onInputTextChange(newText: String) {
@@ -49,6 +52,14 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         }
     }
 
+    fun swapDirection() {
+        translateJob?.cancel()
+        _toEnglish.value = !_toEnglish.value
+        _inputText.value = ""
+        _translationState.value = TranslationState.Idle
+        stopAudio()
+    }
+
     fun translate() {
         val text = _inputText.value.trim()
         if (text.isEmpty() || _translationState.value is TranslationState.Loading) return
@@ -57,7 +68,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
             _translationState.value = TranslationState.Loading
 
             try {
-                val result = qwenService.translate(text, Language.ENGLISH, Language.CHINESE_TRADITIONAL)
+                val result = qwenService.translate(text, _toEnglish.value)
                 result.vocabulary.forEach { item ->
                     if (VocabularyStore.isSaved(item.word)) {
                         VocabularyStore.bumpFrequency(item.word)
@@ -84,23 +95,16 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         val state = _translationState.value
         if (state is TranslationState.Success) {
             _isPlaying.value = true
-            audioPlayer.speak(state.result.translatedText, state.result.targetLanguage.code)
+            audioPlayer.speak(state.result.chineseText, Language.CHINESE_TRADITIONAL.code)
             viewModelScope.launch {
-                kotlinx.coroutines.delay(3000)
+                delay(3000)
                 _isPlaying.value = false
             }
         }
     }
 
     fun speakWord(word: String) {
-        val state = _translationState.value
-        if (state is TranslationState.Success) {
-            audioPlayer.speak(word, state.result.targetLanguage.code)
-        } else {
-            // Fallback for saved vocabulary where we don't have the context of the current target language
-            // For now, default to Chinese Traditional as it was the original focus
-            audioPlayer.speak(word, Language.CHINESE_TRADITIONAL.code)
-        }
+        audioPlayer.speak(word, Language.CHINESE_TRADITIONAL.code)
     }
 
     fun stopAudio() {

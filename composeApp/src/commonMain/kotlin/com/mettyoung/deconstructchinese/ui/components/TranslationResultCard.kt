@@ -40,6 +40,7 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 @Composable
 fun TranslationResultCard(
     result: TranslationResult,
+    toEnglish: Boolean,
     isPlaying: Boolean,
     savedVocab: List<VocabularyItem>,
     onSpeak: () -> Unit,
@@ -52,7 +53,7 @@ fun TranslationResultCard(
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
-        // Output header: language label + actions
+        // Output header: Traditional Chinese label + actions
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -69,7 +70,7 @@ fun TranslationResultCard(
             )
             Row {
                 IconButton(
-                    onClick  = { clipboardManager.setText(AnnotatedString(result.translatedText)) },
+                    onClick  = { clipboardManager.setText(AnnotatedString(result.chineseText)) },
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
@@ -93,16 +94,16 @@ fun TranslationResultCard(
             }
         }
 
-        // Translated text + phonetic
+        // Chinese text + pinyin
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Surface)
-                .padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = if (toEnglish) 12.dp else 20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text       = result.translatedText,
+                text       = result.chineseText,
                 fontSize   = 40.sp,
                 fontWeight = FontWeight.Normal,
                 color      = TextPrimary,
@@ -114,6 +115,32 @@ fun TranslationResultCard(
                 color      = PinyinColor,
                 fontWeight = FontWeight.Normal
             )
+        }
+
+        // English translation (only in Chinese→English mode)
+        if (toEnglish) {
+            HorizontalDivider(color = Divider)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Surface)
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    "English",
+                    color = BluePrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+                Text(
+                    text       = result.translatedText,
+                    fontSize   = 22.sp,
+                    fontWeight = FontWeight.Normal,
+                    color      = TextPrimary,
+                    lineHeight = 30.sp
+                )
+            }
         }
 
         HorizontalDivider(color = Divider)

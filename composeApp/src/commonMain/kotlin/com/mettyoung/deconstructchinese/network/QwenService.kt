@@ -65,13 +65,12 @@ class QwenService(private val apiKey: String) {
 
     private val baseUrl = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
 
-    suspend fun translate(
-        text: String,
-        sourceLanguage: Language,
-        targetLanguage: Language
-    ): TranslationResult {
-        val systemPrompt = "You are a professional translator and language teacher. Translate from ${sourceLanguage.displayName} to ${targetLanguage.displayName}. Respond ONLY with valid JSON."
-        val userPrompt = buildPrompt(text, sourceLanguage, targetLanguage)
+    suspend fun translate(text: String, toEnglish: Boolean = false): TranslationResult {
+        val systemPrompt = if (toEnglish)
+            "You are a professional Chinese language teacher and translator. Translate Chinese text (Traditional or Simplified) into English, and provide a detailed Chinese vocabulary breakdown. Respond ONLY with valid JSON."
+        else
+            "You are a professional translator and language teacher specializing in Traditional Chinese (繁體中文). Translate English into Traditional Chinese and provide a vocabulary breakdown. Respond ONLY with valid JSON."
+        val userPrompt = if (toEnglish) buildPromptToEnglish(text) else buildPromptToChinese(text)
         
         val requestBody = QwenRequest(
             messages = listOf(
@@ -101,7 +100,7 @@ class QwenService(private val apiKey: String) {
             ?.content
             ?: throw Exception("Empty response from Qwen")
 
-        return parseQwenResponse(rawText, text, sourceLanguage, targetLanguage)
+        return parseQwenResponse(rawText, text, toEnglish)
     }
 
     private fun logCurl(requestBody: QwenRequest) {
@@ -118,39 +117,62 @@ class QwenService(private val apiKey: String) {
         println("────────────────────────────────────────────────────────────────")
     }
 
-    private fun buildPrompt(text: String, sourceLanguage: Language, targetLanguage: Language): String {
-        return """
-Translate the following text from ${sourceLanguage.displayName} to ${targetLanguage.displayName}.
-Text: "$text"
+    private fun buildPromptToChinese(text: String): String = """
+Translate the following English text into Traditional Chinese (繁體中文).
 
-Return this exact JSON structure:
+Input: "$text"
+
+Return this exact JSON:
 {
-  "translatedText": "the full translation in ${targetLanguage.displayName}",
-  "phoneticText": "phonetic transcription (like pinyin for Chinese, furigana for Japanese, etc.)",
-  "grammarNote": "one sentence explaining the grammar structure in ${sourceLanguage.displayName}",
+  "translatedText": "the full translation in Traditional Chinese",
+  "phoneticText": "pinyin with tone marks for the entire translatedText",
+  "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar used",
   "vocabulary": [
     {
-      "word": "every individual word or token from the translated text",
-      "phonetic": "phonetic transcription of this word",
-      "meaning": "meaning in ${sourceLanguage.displayName}"
+      "word": "each individual Chinese word/character from translatedText",
+      "phonetic": "pinyin with tone marks for this word",
+      "meaning": "English meaning of this word"
     }
   ]
 }
 
 Rules:
-- The "vocabulary" array MUST contain an entry for EVERY word or token that appears in the translated text — do not skip any word.
-- List vocabulary entries in the same order the words appear in the translated text.
-- If the target language doesn't typically use phonetic transcription (like English or Spanish), leave "phoneticText" and "phonetic" empty or use standard IPA.
+- translatedText must use Traditional Chinese characters (繁體中文), never Simplified.
+- phoneticText and every vocabulary phonetic must be pinyin with tone marks.
+- grammarNote must be in English, describing the grammar of the Chinese output.
+- vocabulary covers every word in translatedText in order — do not skip any.
 - Return ONLY the JSON, nothing else.
-        """.trimIndent()
-    }
+    """.trimIndent()
 
-    private fun parseQwenResponse(
-        rawText: String,
-        originalText: String,
-        sourceLanguage: Language,
-        targetLanguage: Language
-    ): TranslationResult {
+    private fun buildPromptToEnglish(text: String): String = """
+Translate the following Chinese text into English. The input may be Traditional Chinese, Simplified Chinese, or a mix.
+
+Input: "$text"
+
+Return this exact JSON:
+{
+  "traditionalChineseText": "the input converted to Traditional Chinese characters",
+  "translatedText": "the full translation in English",
+  "phoneticText": "pinyin with tone marks for traditionalChineseText",
+  "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar",
+  "vocabulary": [
+    {
+      "word": "each individual Chinese word/character from traditionalChineseText",
+      "phonetic": "pinyin with tone marks for this word",
+      "meaning": "English meaning of this word"
+    }
+  ]
+}
+
+Rules:
+- traditionalChineseText must use Traditional Chinese characters (繁體中文) — convert any Simplified.
+- phoneticText is the pinyin of traditionalChineseText, not the English translation.
+- grammarNote must be in English, describing the grammar of the Chinese input.
+- vocabulary covers every word in traditionalChineseText in order — do not skip any.
+- Return ONLY the JSON, nothing else.
+    """.trimIndent()
+
+    private fun parseQwenResponse(rawText: String, originalText: String, toEnglish: Boolean): TranslationResult {
         val cleanJson = rawText
             .removePrefix("```json")
             .removePrefix("```")
@@ -166,6 +188,7 @@ Rules:
 
         @Serializable
         data class QwenTranslation(
+            val traditionalChineseText: String = "",
             val translatedText: String,
             val phoneticText: String,
             val grammarNote: String = "",
@@ -173,17 +196,17 @@ Rules:
         )
 
         val parsed = jsonConfig.decodeFromString<QwenTranslation>(cleanJson)
+        val chineseText = if (toEnglish) parsed.traditionalChineseText else parsed.translatedText
 
         return TranslationResult(
-            originalText = originalText,
+            originalText   = originalText,
             translatedText = parsed.translatedText,
-            phoneticText = parsed.phoneticText,
-            grammarNote = parsed.grammarNote,
-            vocabulary = parsed.vocabulary.map {
-                VocabularyItem(it.word, it.phonetic, it.meaning)
-            },
-            sourceLanguage = sourceLanguage,
-            targetLanguage = targetLanguage
+            chineseText    = chineseText,
+            phoneticText   = parsed.phoneticText,
+            grammarNote    = parsed.grammarNote,
+            vocabulary     = parsed.vocabulary.map { VocabularyItem(it.word, it.phonetic, it.meaning) },
+            sourceLanguage = if (toEnglish) Language.CHINESE_TRADITIONAL else Language.ENGLISH,
+            targetLanguage = if (toEnglish) Language.ENGLISH else Language.CHINESE_TRADITIONAL
         )
     }
 }

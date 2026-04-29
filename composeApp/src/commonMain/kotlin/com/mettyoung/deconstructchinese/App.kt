@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -178,6 +179,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     val translationState by viewModel.translationState.collectAsStateWithLifecycle()
     val isPlaying        by viewModel.isPlaying.collectAsStateWithLifecycle()
     val savedVocab       by viewModel.savedVocabulary.collectAsStateWithLifecycle()
+    val toEnglish        by viewModel.toEnglish.collectAsStateWithLifecycle()
 
     var showApiModal by remember { mutableStateOf(false) }
     var selectedTab  by rememberSaveable { mutableIntStateOf(0) }
@@ -244,12 +246,14 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                 modifier         = Modifier.padding(innerPadding),
                 inputText        = inputText,
                 translationState = translationState,
+                toEnglish        = toEnglish,
                 isPlaying        = isPlaying,
                 savedVocab       = savedVocab,
                 apiKey           = apiKey,
                 onInputChange    = { viewModel.onInputTextChange(it) },
                 onClear          = { viewModel.clearAll() },
                 onTranslate      = { if (apiKey.isBlank()) showApiModal = true else viewModel.translate() },
+                onSwapDirection  = { viewModel.swapDirection() },
                 onSpeak          = { viewModel.speakTranslation() },
                 onStop           = { viewModel.stopAudio() },
                 onSpeakWord      = { viewModel.speakWord(it) },
@@ -273,12 +277,14 @@ fun TranslateTab(
     modifier: Modifier = Modifier,
     inputText: String,
     translationState: TranslationState,
+    toEnglish: Boolean,
     isPlaying: Boolean,
     savedVocab: List<VocabularyItem>,
     apiKey: String,
     onInputChange: (String) -> Unit,
     onClear: () -> Unit,
     onTranslate: () -> Unit,
+    onSwapDirection: () -> Unit,
     onSpeak: () -> Unit,
     onStop: () -> Unit,
     onSpeakWord: (String) -> Unit,
@@ -314,18 +320,44 @@ fun TranslateTab(
             }
         }
 
-        // Language bar
+        // Language direction bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Surface)
-                .padding(horizontal = 24.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .background(Surface),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("English", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            Icon(Icons.Default.SwapHoriz, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(22.dp))
-            Text("Traditional Chinese", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSwapDirection() }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (toEnglish) "Chinese" else "English",
+                    color = BluePrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+            }
+            IconButton(onClick = onSwapDirection) {
+                Icon(Icons.Default.SwapHoriz, contentDescription = "Swap direction", tint = TextSecondary)
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSwapDirection() }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (toEnglish) "English" else "Traditional Chinese",
+                    color = BluePrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+            }
         }
 
         HorizontalDivider(color = Divider)
@@ -350,7 +382,7 @@ fun TranslateTab(
                         onValueChange = onInputChange,
                         placeholder = {
                             Text(
-                                "Enter text",
+                                if (toEnglish) "Enter Chinese text" else "Enter English text",
                                 color = TextSecondary.copy(alpha = 0.4f),
                                 fontSize = 22.sp
                             )
@@ -447,6 +479,7 @@ fun TranslateTab(
                 when (val state = translationState) {
                     is TranslationState.Success -> TranslationResultCard(
                         result       = state.result,
+                        toEnglish    = toEnglish,
                         isPlaying    = isPlaying,
                         savedVocab   = savedVocab,
                         onSpeak      = onSpeak,

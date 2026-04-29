@@ -25,8 +25,9 @@ data class VocabularyItem(
 @Serializable
 data class TranslationResult(
     val originalText: String,
-    val translatedText: String,
-    val phoneticText: String,
+    val translatedText: String,   // English when toEnglish, Chinese when toChinese
+    val chineseText: String,       // always Traditional Chinese
+    val phoneticText: String,      // always pinyin of chineseText
     val vocabulary: List<VocabularyItem>,
     val grammarNote: String = "",
     val sourceLanguage: Language,
