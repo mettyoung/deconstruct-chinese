@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CollectionsBookmark
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
@@ -59,6 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mettyoung.deconstructchinese.model.TranslationState
+import com.mettyoung.deconstructchinese.ui.components.LanguageSelector
 import com.mettyoung.deconstructchinese.ui.components.TranslationResultCard
 import com.mettyoung.deconstructchinese.ui.screens.VocabularyScreen
 import com.mettyoung.deconstructchinese.ui.theme.*
@@ -101,7 +103,7 @@ fun ApiKeyModal(
         containerColor = SurfaceDark,
         title = {
             Text(
-                "Qwen API Settings",
+                "API Settings",
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -109,7 +111,7 @@ fun ApiKeyModal(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    "Enter your Alibaba DashScope API key to enable translations.",
+                    "Enter your API key to enable translations.",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
@@ -140,13 +142,6 @@ fun ApiKeyModal(
                         unfocusedTextColor   = TextPrimary
                     ),
                     singleLine = true
-                )
-
-                Text(
-                    "Get your key at dashscope.console.aliyun.com",
-                    color = GoldAccent,
-                    fontSize = 12.sp,
-                    modifier = Modifier.clickable { /* Link opening could be added here */ }
                 )
             }
         },
@@ -182,6 +177,8 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     }
 
     val inputText        by viewModel.inputText.collectAsStateWithLifecycle()
+    val sourceLanguage   by viewModel.sourceLanguage.collectAsStateWithLifecycle()
+    val targetLanguage   by viewModel.targetLanguage.collectAsStateWithLifecycle()
     val translationState by viewModel.translationState.collectAsStateWithLifecycle()
     val isPlaying        by viewModel.isPlaying.collectAsStateWithLifecycle()
     val savedVocab       by viewModel.savedVocabulary.collectAsStateWithLifecycle()
@@ -221,12 +218,12 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
             ) {
                 Column {
                     Text(
-                        "Chinese Translator",
+                        "Polyglot AI",
                         style = MaterialTheme.typography.headlineSmall,
                         color = TextPrimary,
                         fontWeight = FontWeight.Bold
                     )
-                    Text("Powered by Qwen", color = GoldAccent, fontSize = 14.sp)
+                    Text("Deconstruct any language", color = GoldAccent, fontSize = 14.sp)
                 }
                 
                 Row {
@@ -252,6 +249,34 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
 
             Spacer(Modifier.height(24.dp))
 
+            // Language Selection
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LanguageSelector(
+                    selectedLanguage = sourceLanguage,
+                    onLanguageSelected = { viewModel.onSourceLanguageChange(it) },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                LanguageSelector(
+                    selectedLanguage = targetLanguage,
+                    onLanguageSelected = { viewModel.onTargetLanguageChange(it) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // Input card
             Card(
                 colors = CardDefaults.cardColors(containerColor = SurfaceDark),
@@ -261,13 +286,13 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("English", color = TextSecondary,
+                    Text(sourceLanguage.displayName, color = TextSecondary,
                         fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
 
                     OutlinedTextField(
                         value = inputText,
                         onValueChange = { viewModel.onInputTextChange(it) },
-                        placeholder = { Text("Type an English sentence...",
+                        placeholder = { Text("Type something in ${sourceLanguage.displayName}...",
                             color = TextSecondary.copy(alpha = 0.5f)) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -305,7 +330,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                             Icon(Icons.Default.Translate, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                if (apiKey.isBlank()) "Enter API Key to Translate" else "Translate to Chinese",
+                                if (apiKey.isBlank()) "Enter API Key" else "Translate to ${targetLanguage.displayName}",
                                 fontWeight = FontWeight.SemiBold
                             )
                         }

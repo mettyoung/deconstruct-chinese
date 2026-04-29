@@ -95,7 +95,7 @@ Return this exact JSON structure:
   "grammarNote": "one sentence explaining the grammar structure",
   "vocabulary": [
     {
-      "word": "a key word or phrase from the translated text",
+      "word": "every individual word or token from the translated text",
       "phonetic": "phonetic transcription",
       "meaning": "meaning in ${sourceLanguage.displayName}"
     }
@@ -103,6 +103,8 @@ Return this exact JSON structure:
 }
 
 Rules:
+- The "vocabulary" array MUST contain an entry for EVERY word or token that appears in the translated text — do not skip any word.
+- List vocabulary entries in the same order the words appear in the translated text.
 - If the target language doesn't typically use phonetic transcription (like English or Spanish), leave "phoneticText" and "phonetic" empty or use standard IPA.
 - Return ONLY the JSON, nothing else
         """.trimIndent()
