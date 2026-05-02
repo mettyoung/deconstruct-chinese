@@ -129,7 +129,7 @@ Return this exact JSON:
   "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar used",
   "vocabulary": [
     {
-      "word": "each individual Chinese word/character from translatedText",
+      "word": "a meaningful Chinese word or multi-character compound from translatedText",
       "phonetic": "pinyin with tone marks for this word",
       "meaning": "English meaning of this word"
     }
@@ -140,6 +140,7 @@ Rules:
 - translatedText must use Traditional Chinese characters (繁體中文), never Simplified.
 - phoneticText and every vocabulary phonetic must be pinyin with tone marks.
 - grammarNote must be in English, describing the grammar of the Chinese output.
+- vocabulary must segment translatedText into natural words (詞語), not individual characters. Multi-character words like 喜歡, 學習, 朋友 must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in translatedText in order — do not skip any.
 - Return ONLY the JSON, nothing else.
     """.trimIndent()
@@ -157,7 +158,7 @@ Return this exact JSON:
   "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar",
   "vocabulary": [
     {
-      "word": "each individual Chinese word/character from traditionalChineseText",
+      "word": "a meaningful Chinese word or multi-character compound from traditionalChineseText",
       "phonetic": "pinyin with tone marks for this word",
       "meaning": "English meaning of this word"
     }
@@ -168,6 +169,7 @@ Rules:
 - traditionalChineseText must use Traditional Chinese characters (繁體中文) — convert any Simplified.
 - phoneticText is the pinyin of traditionalChineseText, not the English translation.
 - grammarNote must be in English, describing the grammar of the Chinese input.
+- vocabulary must segment traditionalChineseText into natural words (詞語), not individual characters. Multi-character words like 喜歡, 學習, 朋友 must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in traditionalChineseText in order — do not skip any.
 - Return ONLY the JSON, nothing else.
     """.trimIndent()
