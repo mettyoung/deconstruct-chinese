@@ -50,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -108,8 +109,10 @@ fun App() {
 @Composable
 fun ApiKeyModal(
     currentApiKey: String,
+    useSimplified: Boolean,
     onDismiss: () -> Unit,
-    onApiKeySubmit: (String) -> Unit
+    onApiKeySubmit: (String) -> Unit,
+    onUseSimplifiedChange: (Boolean) -> Unit
 ) {
     var keyInput by remember { mutableStateOf(currentApiKey) }
     var showKey  by remember { mutableStateOf(false) }
@@ -118,12 +121,31 @@ fun ApiKeyModal(
         onDismissRequest = onDismiss,
         containerColor = Surface,
         title = {
-            Text("API Settings", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Text("Settings", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Chinese Script", color = TextPrimary, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Text(
+                            if (useSimplified) "Simplified (简体)" else "Traditional (繁體)",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Switch(
+                        checked = useSimplified,
+                        onCheckedChange = onUseSimplifiedChange
+                    )
+                }
+                HorizontalDivider(color = Divider)
                 Text(
-                    "Enter your API key to enable translations.",
+                    "API Key",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
@@ -180,6 +202,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     val isPlaying        by viewModel.isPlaying.collectAsStateWithLifecycle()
     val savedVocab       by viewModel.savedVocabulary.collectAsStateWithLifecycle()
     val toEnglish        by viewModel.toEnglish.collectAsStateWithLifecycle()
+    val useSimplified    by viewModel.useSimplified.collectAsStateWithLifecycle()
 
     var showApiModal by remember { mutableStateOf(false) }
     var selectedTab  by rememberSaveable { mutableIntStateOf(0) }
@@ -187,8 +210,10 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     if (showApiModal) {
         ApiKeyModal(
             currentApiKey = apiKey,
+            useSimplified = useSimplified,
             onDismiss = { showApiModal = false },
-            onApiKeySubmit = onApiKeySubmit
+            onApiKeySubmit = onApiKeySubmit,
+            onUseSimplifiedChange = { viewModel.setUseSimplified(it) }
         )
     }
 
@@ -250,6 +275,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                 isPlaying        = isPlaying,
                 savedVocab       = savedVocab,
                 apiKey           = apiKey,
+                useSimplified    = useSimplified,
                 onInputChange    = { viewModel.onInputTextChange(it) },
                 onClear          = { viewModel.clearAll() },
                 onTranslate      = { if (apiKey.isBlank()) showApiModal = true else viewModel.translate() },
@@ -281,6 +307,7 @@ fun TranslateTab(
     isPlaying: Boolean,
     savedVocab: List<VocabularyItem>,
     apiKey: String,
+    useSimplified: Boolean,
     onInputChange: (String) -> Unit,
     onClear: () -> Unit,
     onTranslate: () -> Unit,
@@ -315,10 +342,14 @@ fun TranslateTab(
                 fontSize = 18.sp,
                 modifier = Modifier.padding(start = 8.dp)
             )
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Default.Menu, contentDescription = "Settings", tint = TextSecondary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onOpenSettings) {
+                    Icon(Icons.Default.Menu, contentDescription = "Settings", tint = TextSecondary)
+                }
             }
         }
+
+        val chineseLabel = if (useSimplified) "Simplified Chinese" else "Traditional Chinese"
 
         // Language direction bar
         Row(
@@ -335,7 +366,7 @@ fun TranslateTab(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (toEnglish) "Chinese" else "English",
+                    if (toEnglish) chineseLabel else "English",
                     color = BluePrimary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp
@@ -352,7 +383,7 @@ fun TranslateTab(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (toEnglish) "English" else "Traditional Chinese",
+                    if (toEnglish) "English" else chineseLabel,
                     color = BluePrimary,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp

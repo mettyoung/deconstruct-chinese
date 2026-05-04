@@ -7,6 +7,7 @@ import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.QwenService
+import com.mettyoung.deconstructchinese.storage.AppSettings
 import com.mettyoung.deconstructchinese.storage.VocabularyStore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -35,6 +36,9 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
 
     private val _toEnglish = MutableStateFlow(false)
     val toEnglish: StateFlow<Boolean> = _toEnglish.asStateFlow()
+
+    private val _useSimplified = MutableStateFlow(AppSettings.useSimplified)
+    val useSimplified: StateFlow<Boolean> = _useSimplified.asStateFlow()
 
     private var translateJob: Job? = null
 
@@ -68,7 +72,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
             _translationState.value = TranslationState.Loading
 
             try {
-                val result = qwenService.translate(text, _toEnglish.value)
+                val result = qwenService.translate(text, _toEnglish.value, _useSimplified.value)
                 result.vocabulary.forEach { item ->
                     if (VocabularyStore.isSaved(item.word)) {
                         VocabularyStore.bumpFrequency(item.word)
@@ -129,6 +133,12 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
 
     fun isSaved(word: String): Boolean {
         return VocabularyStore.isSaved(word)
+    }
+
+    fun setUseSimplified(value: Boolean) {
+        AppSettings.useSimplified = value
+        _useSimplified.value = value
+        _translationState.value = TranslationState.Idle
     }
 
     override fun onCleared() {

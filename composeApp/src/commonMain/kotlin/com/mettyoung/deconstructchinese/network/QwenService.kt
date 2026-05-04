@@ -65,12 +65,13 @@ class QwenService(private val apiKey: String) {
 
     private val baseUrl = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
 
-    suspend fun translate(text: String, toEnglish: Boolean = false): TranslationResult {
+    suspend fun translate(text: String, toEnglish: Boolean = false, useSimplified: Boolean = true): TranslationResult {
+        val chineseVariant = if (useSimplified) "Simplified Chinese (简体中文)" else "Traditional Chinese (繁體中文)"
         val systemPrompt = if (toEnglish)
-            "You are a professional Chinese language teacher and translator. Translate Chinese text (Traditional or Simplified) into English, and provide a detailed Chinese vocabulary breakdown. Respond ONLY with valid JSON."
+            "You are a professional Chinese language teacher and translator. Translate Chinese text into English, and provide a detailed Chinese vocabulary breakdown. Respond ONLY with valid JSON."
         else
-            "You are a professional translator and language teacher specializing in Traditional Chinese (繁體中文). Translate English into Traditional Chinese and provide a vocabulary breakdown. Respond ONLY with valid JSON."
-        val userPrompt = if (toEnglish) buildPromptToEnglish(text) else buildPromptToChinese(text)
+            "You are a professional translator and language teacher specializing in $chineseVariant. Translate English into $chineseVariant and provide a vocabulary breakdown. Respond ONLY with valid JSON."
+        val userPrompt = if (toEnglish) buildPromptToEnglish(text, useSimplified) else buildPromptToChinese(text, useSimplified)
         
         val requestBody = QwenRequest(
             messages = listOf(
@@ -117,14 +118,20 @@ class QwenService(private val apiKey: String) {
         println("────────────────────────────────────────────────────────────────")
     }
 
-    private fun buildPromptToChinese(text: String): String = """
-Translate the following English text into Traditional Chinese (繁體中文).
+    private fun buildPromptToChinese(text: String, useSimplified: Boolean): String {
+        val variant = if (useSimplified) "Simplified Chinese (简体中文)" else "Traditional Chinese (繁體中文)"
+        val scriptRule = if (useSimplified)
+            "translatedText must use Simplified Chinese characters (简体中文), never Traditional."
+        else
+            "translatedText must use Traditional Chinese characters (繁體中文), never Simplified."
+        return """
+Translate the following English text into $variant.
 
 Input: "$text"
 
 Return this exact JSON:
 {
-  "translatedText": "the full translation in Traditional Chinese",
+  "translatedText": "the full translation in $variant",
   "phoneticText": "pinyin with tone marks for the entire translatedText",
   "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar used",
   "vocabulary": [
@@ -137,22 +144,30 @@ Return this exact JSON:
 }
 
 Rules:
-- translatedText must use Traditional Chinese characters (繁體中文), never Simplified.
+- $scriptRule
 - phoneticText and every vocabulary phonetic must be pinyin with tone marks.
 - grammarNote must be in English, describing the grammar of the Chinese output.
-- vocabulary must segment translatedText into natural words (詞語), not individual characters. Multi-character words like 喜歡, 學習, 朋友 must appear as a single vocabulary entry. Do not split compound words.
+- vocabulary must segment translatedText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in translatedText in order — do not skip any.
 - Return ONLY the JSON, nothing else.
-    """.trimIndent()
+        """.trimIndent()
+    }
 
-    private fun buildPromptToEnglish(text: String): String = """
+    private fun buildPromptToEnglish(text: String, useSimplified: Boolean): String {
+        val variant = if (useSimplified) "Simplified Chinese (简体中文)" else "Traditional Chinese (繁體中文)"
+        val fieldName = "traditionalChineseText"
+        val scriptRule = if (useSimplified)
+            "$fieldName must use Simplified Chinese characters (简体中文) — convert any Traditional."
+        else
+            "$fieldName must use Traditional Chinese characters (繁體中文) — convert any Simplified."
+        return """
 Translate the following Chinese text into English. The input may be Traditional Chinese, Simplified Chinese, or a mix.
 
 Input: "$text"
 
 Return this exact JSON:
 {
-  "traditionalChineseText": "the input converted to Traditional Chinese characters",
+  "traditionalChineseText": "the input normalized to $variant",
   "translatedText": "the full translation in English",
   "phoneticText": "pinyin with tone marks for traditionalChineseText",
   "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar",
@@ -166,13 +181,14 @@ Return this exact JSON:
 }
 
 Rules:
-- traditionalChineseText must use Traditional Chinese characters (繁體中文) — convert any Simplified.
+- $scriptRule
 - phoneticText is the pinyin of traditionalChineseText, not the English translation.
 - grammarNote must be in English, describing the grammar of the Chinese input.
-- vocabulary must segment traditionalChineseText into natural words (詞語), not individual characters. Multi-character words like 喜歡, 學習, 朋友 must appear as a single vocabulary entry. Do not split compound words.
+- vocabulary must segment traditionalChineseText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in traditionalChineseText in order — do not skip any.
 - Return ONLY the JSON, nothing else.
-    """.trimIndent()
+        """.trimIndent()
+    }
 
     private fun parseQwenResponse(rawText: String, originalText: String, toEnglish: Boolean): TranslationResult {
         val cleanJson = rawText
@@ -199,6 +215,7 @@ Rules:
 
         val parsed = jsonConfig.decodeFromString<QwenTranslation>(cleanJson)
         val chineseText = if (toEnglish) parsed.traditionalChineseText else parsed.translatedText
+        val chineseLang = if (useSimplified) Language.CHINESE_SIMPLIFIED else Language.CHINESE_TRADITIONAL
 
         return TranslationResult(
             originalText   = originalText,
@@ -207,8 +224,8 @@ Rules:
             phoneticText   = parsed.phoneticText,
             grammarNote    = parsed.grammarNote,
             vocabulary     = parsed.vocabulary.map { VocabularyItem(it.word, it.phonetic, it.meaning) },
-            sourceLanguage = if (toEnglish) Language.CHINESE_TRADITIONAL else Language.ENGLISH,
-            targetLanguage = if (toEnglish) Language.ENGLISH else Language.CHINESE_TRADITIONAL
+            sourceLanguage = if (toEnglish) chineseLang else Language.ENGLISH,
+            targetLanguage = if (toEnglish) Language.ENGLISH else chineseLang
         )
     }
 }
