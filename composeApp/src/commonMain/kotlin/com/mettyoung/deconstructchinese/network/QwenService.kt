@@ -101,7 +101,7 @@ class QwenService(private val apiKey: String) {
             ?.content
             ?: throw Exception("Empty response from Qwen")
 
-        return parseQwenResponse(rawText, text, toEnglish)
+        return parseQwenResponse(rawText, text, toEnglish, useSimplified)
     }
 
     private fun logCurl(requestBody: QwenRequest) {
@@ -190,7 +190,7 @@ Rules:
         """.trimIndent()
     }
 
-    private fun parseQwenResponse(rawText: String, originalText: String, toEnglish: Boolean): TranslationResult {
+    private fun parseQwenResponse(rawText: String, originalText: String, toEnglish: Boolean, useSimplified: Boolean): TranslationResult {
         val cleanJson = rawText
             .removePrefix("```json")
             .removePrefix("```")
