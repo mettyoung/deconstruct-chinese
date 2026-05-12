@@ -65,11 +65,8 @@ kotlin {
             implementation(libs.multiplatform.settings.serialization)
         }
         
-        val iosMain by creating {
-            dependsOn(commonMain.get())
-            dependencies {
-                implementation(libs.ktor.client.darwin)
-            }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
 
         commonTest.dependencies {
