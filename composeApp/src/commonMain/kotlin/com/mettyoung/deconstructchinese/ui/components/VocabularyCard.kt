@@ -75,22 +75,13 @@ fun VocabularyCard(
                     .background(BluePrimary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text      = mainWord,
-                        fontSize  = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color     = TextPrimary,
-                        textAlign = TextAlign.Center
-                    )
-                    if (counterpartWord != null) {
-                        Text(
-                            text      = counterpartWord,
-                            fontSize  = 10.sp,
-                            color     = TextSecondary
-                        )
-                    }
-                }
+                Text(
+                    text      = mainWord,
+                    fontSize  = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color     = TextPrimary,
+                    textAlign = TextAlign.Center
+                )
             }
             if (item.frequency > 0) {
                 Box(
@@ -118,7 +109,12 @@ fun VocabularyCard(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(item.phonetic, color = PinyinColor, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            val pinyinDisplay = if (counterpartWord != null) {
+                "${item.phonetic} ($counterpartWord)"
+            } else {
+                item.phonetic
+            }
+            Text(pinyinDisplay, color = PinyinColor, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Text(item.meaning, color = TextSecondary, fontSize = 13.sp)
         }
 

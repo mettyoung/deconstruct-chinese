@@ -51,19 +51,25 @@ private fun ChineseWithPinyin(
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         vocabulary.forEach { item ->
-            val displayWord = if (useSimplified) {
-                item.simplified
-                    ?: ChineseScriptConverter.toSimplified(item.word).takeIf { it != item.word }
-                    ?: item.word
-            } else {
-                item.word
-            }
+            val simplified: String? = item.simplified
+                ?: ChineseScriptConverter.toSimplified(item.word).takeIf { it != item.word }
+            
+            val displayWord = if (useSimplified) simplified ?: item.word else item.word
+            val counterpartWord = if (simplified != null) {
+                if (useSimplified) item.word else simplified
+            } else null
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)
             ) {
+                val pinyinDisplay = if (counterpartWord != null) {
+                    "${item.phonetic} ($counterpartWord)"
+                } else {
+                    item.phonetic
+                }
                 Text(
-                    text       = item.phonetic,
+                    text       = pinyinDisplay,
                     fontSize   = 13.sp,
                     color      = PinyinColor,
                     fontWeight = FontWeight.Normal
