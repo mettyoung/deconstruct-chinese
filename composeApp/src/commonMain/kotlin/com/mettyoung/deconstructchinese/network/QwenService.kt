@@ -136,7 +136,8 @@ Return this exact JSON:
   "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar used",
   "vocabulary": [
     {
-      "word": "a meaningful Chinese word or multi-character compound from translatedText",
+      "word": "the Traditional Chinese form of this word",
+      "simplified": "the Simplified Chinese form — omit this field only if traditional and simplified are identical",
       "phonetic": "pinyin with tone marks for this word",
       "meaning": "English meaning of this word"
     }
@@ -149,17 +150,13 @@ Rules:
 - grammarNote must be in English, describing the grammar of the Chinese output.
 - vocabulary must segment translatedText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in translatedText in order — do not skip any.
+- word is ALWAYS the Traditional Chinese form regardless of the preferred script. simplified is ALWAYS the Simplified Chinese form, omitted only when the characters are identical.
 - Return ONLY the JSON, nothing else.
         """.trimIndent()
     }
 
     private fun buildPromptToEnglish(text: String, useSimplified: Boolean): String {
         val variant = if (useSimplified) "Simplified Chinese (简体中文)" else "Traditional Chinese (繁體中文)"
-        val fieldName = "traditionalChineseText"
-        val scriptRule = if (useSimplified)
-            "$fieldName must use Simplified Chinese characters (简体中文) — convert any Traditional."
-        else
-            "$fieldName must use Traditional Chinese characters (繁體中文) — convert any Simplified."
         return """
 Translate the following Chinese text into English. The input may be Traditional Chinese, Simplified Chinese, or a mix.
 
@@ -173,7 +170,8 @@ Return this exact JSON:
   "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar",
   "vocabulary": [
     {
-      "word": "a meaningful Chinese word or multi-character compound from traditionalChineseText",
+      "word": "the Traditional Chinese form of this word",
+      "simplified": "the Simplified Chinese form — omit this field only if traditional and simplified are identical",
       "phonetic": "pinyin with tone marks for this word",
       "meaning": "English meaning of this word"
     }
@@ -181,11 +179,12 @@ Return this exact JSON:
 }
 
 Rules:
-- $scriptRule
+- traditionalChineseText must use $variant characters.
 - phoneticText is the pinyin of traditionalChineseText, not the English translation.
 - grammarNote must be in English, describing the grammar of the Chinese input.
 - vocabulary must segment traditionalChineseText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in traditionalChineseText in order — do not skip any.
+- word is ALWAYS the Traditional Chinese form regardless of the preferred script. simplified is ALWAYS the Simplified Chinese form, omitted only when the characters are identical.
 - Return ONLY the JSON, nothing else.
         """.trimIndent()
     }
@@ -200,6 +199,7 @@ Rules:
         @Serializable
         data class VocabDto(
             val word: String,
+            val simplified: String? = null,
             val phonetic: String,
             val meaning: String
         )
@@ -223,7 +223,7 @@ Rules:
             chineseText    = chineseText,
             phoneticText   = parsed.phoneticText,
             grammarNote    = parsed.grammarNote,
-            vocabulary     = parsed.vocabulary.map { VocabularyItem(it.word, it.phonetic, it.meaning) },
+            vocabulary     = parsed.vocabulary.map { VocabularyItem(it.word, it.phonetic, it.meaning, simplified = it.simplified) },
             sourceLanguage = if (toEnglish) chineseLang else Language.ENGLISH,
             targetLanguage = if (toEnglish) Language.ENGLISH else chineseLang
         )

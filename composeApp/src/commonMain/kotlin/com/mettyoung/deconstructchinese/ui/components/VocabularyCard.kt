@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.VocabularyItem
+import com.mettyoung.deconstructchinese.util.ChineseScriptConverter
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
 import com.mettyoung.deconstructchinese.ui.theme.Card
 import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
@@ -43,10 +44,18 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 fun VocabularyCard(
     item: VocabularyItem,
     isSaved: Boolean = false,
+    useSimplified: Boolean = false,
     onSpeak: () -> Unit,
     onSaveToggle: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    // item.word is always traditional; resolve simplified from API field or converter fallback
+    val simplified: String? = item.simplified
+        ?: ChineseScriptConverter.toSimplified(item.word).takeIf { it != item.word }
+    val mainWord = if (useSimplified) simplified ?: item.word else item.word
+    val counterpartWord = if (simplified != null) {
+        if (useSimplified) item.word else simplified
+    } else null
 
     Row(
         modifier = Modifier
@@ -66,13 +75,22 @@ fun VocabularyCard(
                     .background(BluePrimary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text      = item.word,
-                    fontSize  = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color     = TextPrimary,
-                    textAlign = TextAlign.Center
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text      = mainWord,
+                        fontSize  = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color     = TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    if (counterpartWord != null) {
+                        Text(
+                            text      = counterpartWord,
+                            fontSize  = 10.sp,
+                            color     = TextSecondary
+                        )
+                    }
+                }
             }
             if (item.frequency > 0) {
                 Box(
@@ -107,7 +125,7 @@ fun VocabularyCard(
         // Action buttons
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             IconButton(
-                onClick  = { clipboardManager.setText(AnnotatedString(item.word)) },
+                onClick  = { clipboardManager.setText(AnnotatedString(mainWord)) },
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = TextSecondary, modifier = Modifier.size(16.dp))

@@ -74,6 +74,7 @@ fun TranslationResultCard(
     toEnglish: Boolean,
     isPlaying: Boolean,
     savedVocab: List<VocabularyItem>,
+    useSimplified: Boolean = false,
     onSpeak: () -> Unit,
     onStop: () -> Unit,
     onSpeakWord: (String) -> Unit,
@@ -198,6 +199,7 @@ fun TranslationResultCard(
                 VocabularyCard(
                     item         = item,
                     isSaved      = isSaved,
+                    useSimplified = useSimplified,
                     onSpeak      = { onSpeakWord(item.word) },
                     onSaveToggle = { if (isSaved) onRemoveWord(item) else onSaveWord(item) }
                 )

@@ -288,11 +288,12 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                 onOpenSettings   = { showApiModal = true }
             )
             1 -> VocabularyScreen(
-                modifier    = Modifier.padding(innerPadding),
-                vocabulary  = savedVocab,
-                onDismiss   = { selectedTab = 0 },
-                onRemove    = { viewModel.removeWord(it) },
-                onSpeak     = { viewModel.speakWord(it) }
+                modifier     = Modifier.padding(innerPadding),
+                vocabulary   = savedVocab,
+                useSimplified = useSimplified,
+                onDismiss    = { selectedTab = 0 },
+                onRemove     = { viewModel.removeWord(it) },
+                onSpeak      = { viewModel.speakWord(it) }
             )
         }
     }
@@ -513,6 +514,7 @@ fun TranslateTab(
                         toEnglish    = toEnglish,
                         isPlaying    = isPlaying,
                         savedVocab   = savedVocab,
+                        useSimplified = useSimplified,
                         onSpeak      = onSpeak,
                         onStop       = onStop,
                         onSpeakWord  = onSpeakWord,

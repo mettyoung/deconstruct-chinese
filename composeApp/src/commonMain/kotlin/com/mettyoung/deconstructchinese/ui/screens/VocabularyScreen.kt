@@ -35,6 +35,7 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 fun VocabularyScreen(
     modifier: Modifier = Modifier,
     vocabulary: List<VocabularyItem>,
+    useSimplified: Boolean = false,
     onDismiss: () -> Unit,
     onRemove: (VocabularyItem) -> Unit,
     onSpeak: (String) -> Unit
@@ -81,6 +82,7 @@ fun VocabularyScreen(
                     VocabularyCard(
                         item         = item,
                         isSaved      = true,
+                        useSimplified = useSimplified,
                         onSpeak      = { onSpeak(item.word) },
                         onSaveToggle = { onRemove(item) }
                     )

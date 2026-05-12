@@ -19,7 +19,8 @@ data class VocabularyItem(
     val word: String,
     val phonetic: String,
     val meaning: String,
-    val frequency: Int = 0
+    val frequency: Int = 0,
+    val simplified: String? = null
 )
 
 @Serializable
