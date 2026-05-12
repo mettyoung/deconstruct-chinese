@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.VocabularyItem
+import com.mettyoung.deconstructchinese.util.ChineseScriptConverter
 import com.mettyoung.deconstructchinese.ui.theme.Background
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
 import com.mettyoung.deconstructchinese.ui.theme.Divider
@@ -40,12 +41,23 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChineseWithPinyin(vocabulary: List<VocabularyItem>, modifier: Modifier = Modifier) {
+private fun ChineseWithPinyin(
+    vocabulary: List<VocabularyItem>,
+    useSimplified: Boolean,
+    modifier: Modifier = Modifier
+) {
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         vocabulary.forEach { item ->
+            val displayWord = if (useSimplified) {
+                item.simplified
+                    ?: ChineseScriptConverter.toSimplified(item.word).takeIf { it != item.word }
+                    ?: item.word
+            } else {
+                item.word
+            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)
@@ -57,7 +69,7 @@ private fun ChineseWithPinyin(vocabulary: List<VocabularyItem>, modifier: Modifi
                     fontWeight = FontWeight.Normal
                 )
                 Text(
-                    text       = item.word,
+                    text       = displayWord,
                     fontSize   = 34.sp,
                     fontWeight = FontWeight.Normal,
                     color      = TextPrimary,
@@ -82,10 +94,15 @@ fun TranslationResultCard(
     onRemoveWord: (VocabularyItem) -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val displayChineseText = if (useSimplified) {
+        ChineseScriptConverter.toSimplified(result.chineseText)
+    } else {
+        result.chineseText
+    }
+    val scriptLabel = if (useSimplified) "Simplified Chinese" else "Traditional Chinese"
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
-        // Output header: Traditional Chinese label + actions
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -95,14 +112,14 @@ fun TranslationResultCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Traditional Chinese",
+                scriptLabel,
                 color = BluePrimary,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp
             )
             Row {
                 IconButton(
-                    onClick  = { clipboardManager.setText(AnnotatedString(result.chineseText)) },
+                    onClick  = { clipboardManager.setText(AnnotatedString(displayChineseText)) },
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
@@ -126,10 +143,10 @@ fun TranslationResultCard(
             }
         }
 
-        // Chinese characters with pinyin aligned above each word
         ChineseWithPinyin(
-            vocabulary = result.vocabulary,
-            modifier   = Modifier
+            vocabulary    = result.vocabulary,
+            useSimplified = useSimplified,
+            modifier      = Modifier
                 .fillMaxWidth()
                 .background(Surface)
                 .padding(start = 14.dp, end = 14.dp, bottom = if (toEnglish) 8.dp else 16.dp)
