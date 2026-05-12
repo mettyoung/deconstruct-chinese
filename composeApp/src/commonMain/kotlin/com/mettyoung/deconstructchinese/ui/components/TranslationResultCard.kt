@@ -1,27 +1,18 @@
 package com.mettyoung.deconstructchinese.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -31,13 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.util.ChineseScriptConverter
-import com.mettyoung.deconstructchinese.ui.theme.Background
-import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
-import com.mettyoung.deconstructchinese.ui.theme.Divider
-import com.mettyoung.deconstructchinese.ui.theme.PinyinColor
-import com.mettyoung.deconstructchinese.ui.theme.Surface
-import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
-import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
+import com.mettyoung.deconstructchinese.ui.theme.*
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -48,7 +33,7 @@ private fun ChineseWithPinyin(
 ) {
     FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         vocabulary.forEach { item ->
             val simplified: String? = item.simplified
@@ -61,7 +46,7 @@ private fun ChineseWithPinyin(
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp)
+                modifier = Modifier.padding(vertical = 4.dp)
             ) {
                 val pinyinDisplay = if (counterpartWord != null) {
                     "${item.phonetic} ($counterpartWord)"
@@ -70,16 +55,17 @@ private fun ChineseWithPinyin(
                 }
                 Text(
                     text       = pinyinDisplay,
-                    fontSize   = 13.sp,
+                    fontSize   = 12.sp,
                     color      = PinyinColor,
-                    fontWeight = FontWeight.Normal
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
                 )
                 Text(
                     text       = displayWord,
-                    fontSize   = 34.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontSize   = 32.sp,
+                    fontWeight = FontWeight.Bold,
                     color      = TextPrimary,
-                    lineHeight = 42.sp
+                    lineHeight = 40.sp
                 )
             }
         }
@@ -105,118 +91,129 @@ fun TranslationResultCard(
     } else {
         result.chineseText
     }
-    val scriptLabel = if (useSimplified) "Simplified Chinese" else "Traditional Chinese"
+    val scriptLabel = if (useSimplified) "Simplified" else "Traditional"
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Surface)
-                .padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Text(
-                scriptLabel,
-                color = BluePrimary,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp
-            )
-            Row {
-                IconButton(
-                    onClick  = { clipboardManager.setText(AnnotatedString(displayChineseText)) },
-                    modifier = Modifier.size(36.dp)
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 8.dp, top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
-                        tint     = TextSecondary,
-                        modifier = Modifier.size(18.dp)
+                    Text(
+                        scriptLabel,
+                        color = BluePrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        letterSpacing = 1.sp
                     )
+                    Row {
+                        IconButton(
+                            onClick  = { clipboardManager.setText(AnnotatedString(displayChineseText)) },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = TextSecondary, modifier = Modifier.size(18.dp))
+                        }
+                        IconButton(
+                            onClick  = { if (isPlaying) onStop() else onSpeak() },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                if (isPlaying) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = if (isPlaying) "Stop" else "Listen",
+                                tint     = if (isPlaying) BluePrimary else TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
-                IconButton(
-                    onClick  = { if (isPlaying) onStop() else onSpeak() },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        if (isPlaying) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
-                        contentDescription = if (isPlaying) "Stop" else "Listen",
-                        tint     = if (isPlaying) BluePrimary else TextSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
+
+                ChineseWithPinyin(
+                    vocabulary    = result.vocabulary,
+                    useSimplified = useSimplified,
+                    modifier      = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+
+                if (toEnglish) {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Divider.copy(alpha = 0.5f))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "ENGLISH",
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text       = result.translatedText,
+                            fontSize   = 20.sp,
+                            fontWeight = FontWeight.Medium,
+                            color      = TextPrimary,
+                            lineHeight = 28.sp
+                        )
+                    }
                 }
             }
         }
 
-        ChineseWithPinyin(
-            vocabulary    = result.vocabulary,
-            useSimplified = useSimplified,
-            modifier      = Modifier
-                .fillMaxWidth()
-                .background(Surface)
-                .padding(start = 14.dp, end = 14.dp, bottom = if (toEnglish) 8.dp else 16.dp)
+        if (result.grammarNote.isNotBlank()) {
+            Spacer(Modifier.height(12.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = GrammarBg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Translate, 
+                        contentDescription = null, 
+                        tint = BluePrimary, 
+                        modifier = Modifier.size(20.dp).padding(top = 2.dp)
+                    )
+                    Column {
+                        Text("GRAMMAR NOTE", color = BluePrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(result.grammarNote, color = TextPrimary.copy(alpha = 0.8f), fontSize = 14.sp, lineHeight = 20.sp)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+        
+        Text(
+            "VOCABULARY BREAKDOWN",
+            color      = TextSecondary,
+            fontSize   = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
         )
 
-        // English translation (only in Chinese→English mode)
-        if (toEnglish) {
-            HorizontalDivider(color = Divider)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Surface)
-                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    "English",
-                    color = BluePrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text       = result.translatedText,
-                    fontSize   = 22.sp,
-                    fontWeight = FontWeight.Normal,
-                    color      = TextPrimary,
-                    lineHeight = 30.sp
-                )
-            }
-        }
-
-        HorizontalDivider(color = Divider)
-
-        // Grammar note
-        if (result.grammarNote.isNotBlank()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFE8F0FE))
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-                Text("Grammar Note", color = BluePrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(6.dp))
-                Text(result.grammarNote, color = TextSecondary, fontSize = 14.sp, lineHeight = 20.sp)
-            }
-            HorizontalDivider(color = Divider)
-        }
-
-        // Vocabulary breakdown
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Background)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                "Word Breakdown",
-                color      = TextSecondary,
-                fontSize   = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(Modifier.height(4.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             result.vocabulary.forEach { item ->
                 val isSaved = savedVocab.any { it.word == item.word }
                 VocabularyCard(

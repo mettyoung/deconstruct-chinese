@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Card
@@ -25,8 +27,10 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 @Composable
 fun ErrorCard(message: String) {
     Card(
-        colors   = CardDefaults.cardColors(containerColor = Color(0xFFFCE8E6)),
-        modifier = Modifier.fillMaxWidth()
+        colors   = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)), // Rose 50
+        shape    = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             Modifier.padding(16.dp),
@@ -36,12 +40,18 @@ fun ErrorCard(message: String) {
             Icon(
                 Icons.Default.ErrorOutline,
                 contentDescription = null,
-                tint = Color(0xFFD93025)
+                tint = Color(0xFFEF4444), // Red 500
+                modifier = Modifier.size(24.dp)
             )
             Column {
-                Text("Translation Error", color = Color(0xFFD93025), fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Translation Error", 
+                    color = Color(0xFF991B1B), // Red 800
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
                 Spacer(Modifier.height(4.dp))
-                Text(message, color = TextSecondary, fontSize = 14.sp)
+                Text(message, color = TextSecondary, fontSize = 13.sp, lineHeight = 18.sp)
             }
         }
     }

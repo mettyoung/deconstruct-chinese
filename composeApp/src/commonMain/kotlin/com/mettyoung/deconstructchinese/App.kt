@@ -1,67 +1,26 @@
 package com.mettyoung.deconstructchinese
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.TextStyle
@@ -78,13 +37,7 @@ import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.ui.components.ErrorCard
 import com.mettyoung.deconstructchinese.ui.components.TranslationResultCard
 import com.mettyoung.deconstructchinese.ui.screens.VocabularyScreen
-import com.mettyoung.deconstructchinese.ui.theme.Background
-import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
-import com.mettyoung.deconstructchinese.ui.theme.Divider
-import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
-import com.mettyoung.deconstructchinese.ui.theme.Surface
-import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
-import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
+import com.mettyoung.deconstructchinese.ui.theme.*
 import com.mettyoung.deconstructchinese.viewmodel.TranslatorViewModel
 
 @Composable
@@ -99,6 +52,12 @@ fun App() {
             onPrimary    = Color.White,
             onBackground = TextPrimary,
             onSurface    = TextPrimary,
+            surfaceVariant = Card
+        ),
+        typography = Typography().copy(
+            headlineSmall = TextStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp, letterSpacing = (-0.5).sp),
+            titleLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+            bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp)
         )
     ) {
         var apiKey by rememberSaveable { mutableStateOf("sk-043c8d868fed44758bb76d84774aeeea") }
@@ -120,18 +79,23 @@ fun ApiKeyModal(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Surface,
+        shape = RoundedCornerShape(24.dp),
         title = {
-            Text("Settings", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Text("Settings", style = MaterialTheme.typography.titleLarge)
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Card)
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Chinese Script", color = TextPrimary, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Text("Chinese Script", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Text(
                             if (useSimplified) "Simplified (简体)" else "Traditional (繁體)",
                             color = TextSecondary,
@@ -140,47 +104,55 @@ fun ApiKeyModal(
                     }
                     Switch(
                         checked = useSimplified,
-                        onCheckedChange = onUseSimplifiedChange
+                        onCheckedChange = onUseSimplifiedChange,
+                        colors = SwitchDefaults.colors(checkedThumbColor = BluePrimary)
                     )
                 }
-                HorizontalDivider(color = Divider)
-                Text(
-                    "API Key",
-                    color = TextSecondary,
-                    fontSize = 14.sp
-                )
-                OutlinedTextField(
-                    value = keyInput,
-                    onValueChange = { keyInput = it },
-                    label = { Text("API Key", color = TextSecondary) },
-                    visualTransformation = if (showKey)
-                        androidx.compose.ui.text.input.VisualTransformation.None
-                    else
-                        androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { showKey = !showKey }) {
-                            Icon(
-                                if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = null,
-                                tint = TextSecondary
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor   = BluePrimary,
-                        unfocusedBorderColor = TextSecondary.copy(alpha = 0.4f),
-                        focusedTextColor     = TextPrimary,
-                        unfocusedTextColor   = TextPrimary
-                    ),
-                    singleLine = true
-                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "API Key",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                    OutlinedTextField(
+                        value = keyInput,
+                        onValueChange = { keyInput = it },
+                        placeholder = { Text("sk-...", color = TextSecondary.copy(alpha = 0.5f)) },
+                        visualTransformation = if (showKey)
+                            androidx.compose.ui.text.input.VisualTransformation.None
+                        else
+                            androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showKey = !showKey }) {
+                                Icon(
+                                    if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = null,
+                                    tint = TextSecondary
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor   = BluePrimary,
+                            unfocusedBorderColor = Divider,
+                            focusedTextColor     = TextPrimary,
+                            unfocusedTextColor   = TextPrimary
+                        ),
+                        singleLine = true
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = { onApiKeySubmit(keyInput.trim()); onDismiss() },
-                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
+                modifier = Modifier.height(48.dp).fillMaxWidth(0.4f)
             ) { Text("Save") }
         },
         dismissButton = {
@@ -220,7 +192,11 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     Scaffold(
         containerColor = Background,
         bottomBar = {
-            NavigationBar(containerColor = Surface, tonalElevation = 0.dp) {
+            NavigationBar(
+                containerColor = Surface,
+                tonalElevation = 8.dp,
+                modifier = Modifier.shadow(16.dp)
+            ) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick  = { selectedTab = 0 },
@@ -229,7 +205,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor   = BluePrimary,
                         selectedTextColor   = BluePrimary,
-                        indicatorColor      = BluePrimary.copy(alpha = 0.12f),
+                        indicatorColor      = BluePrimary.copy(alpha = 0.1f),
                         unselectedIconColor = TextSecondary,
                         unselectedTextColor = TextSecondary
                     )
@@ -241,11 +217,14 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                         BadgedBox(
                             badge = {
                                 if (savedVocab.isNotEmpty()) {
-                                    Badge(containerColor = GoldAccent) {
+                                    Badge(
+                                        containerColor = GoldAccent,
+                                        contentColor = Color.White
+                                    ) {
                                         Text(
-                                            "${savedVocab.size}",
-                                            color = Background,
-                                            fontSize = 10.sp
+                                            "${savedVocab.size}", 
+                                            fontSize = 10.sp,
+                                            modifier = Modifier.padding(horizontal = 4.dp)
                                         )
                                     }
                                 }
@@ -258,7 +237,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor   = GoldAccent,
                         selectedTextColor   = GoldAccent,
-                        indicatorColor      = GoldAccent.copy(alpha = 0.12f),
+                        indicatorColor      = GoldAccent.copy(alpha = 0.1f),
                         unselectedIconColor = TextSecondary,
                         unselectedTextColor = TextSecondary
                     )
@@ -266,35 +245,35 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
             }
         }
     ) { innerPadding ->
-        when (selectedTab) {
-            0 -> TranslateTab(
-                modifier         = Modifier.padding(innerPadding),
-                inputText        = inputText,
-                translationState = translationState,
-                toEnglish        = toEnglish,
-                isPlaying        = isPlaying,
-                savedVocab       = savedVocab,
-                apiKey           = apiKey,
-                useSimplified    = useSimplified,
-                onInputChange    = { viewModel.onInputTextChange(it) },
-                onClear          = { viewModel.clearAll() },
-                onTranslate      = { if (apiKey.isBlank()) showApiModal = true else viewModel.translate() },
-                onSwapDirection  = { viewModel.swapDirection() },
-                onSpeak          = { viewModel.speakTranslation() },
-                onStop           = { viewModel.stopAudio() },
-                onSpeakWord      = { viewModel.speakWord(it) },
-                onSaveWord       = { viewModel.saveWord(it) },
-                onRemoveWord     = { viewModel.removeWord(it) },
-                onOpenSettings   = { showApiModal = true }
-            )
-            1 -> VocabularyScreen(
-                modifier     = Modifier.padding(innerPadding),
-                vocabulary   = savedVocab,
-                useSimplified = useSimplified,
-                onDismiss    = { selectedTab = 0 },
-                onRemove     = { viewModel.removeWord(it) },
-                onSpeak      = { viewModel.speakWord(it) }
-            )
+        Box(modifier = Modifier.padding(innerPadding)) {
+            when (selectedTab) {
+                0 -> TranslateTab(
+                    inputText        = inputText,
+                    translationState = translationState,
+                    toEnglish        = toEnglish,
+                    isPlaying        = isPlaying,
+                    savedVocab       = savedVocab,
+                    apiKey           = apiKey,
+                    useSimplified    = useSimplified,
+                    onInputChange    = { viewModel.onInputTextChange(it) },
+                    onClear          = { viewModel.clearAll() },
+                    onTranslate      = { if (apiKey.isBlank()) showApiModal = true else viewModel.translate() },
+                    onSwapDirection  = { viewModel.swapDirection() },
+                    onSpeak          = { viewModel.speakTranslation() },
+                    onStop           = { viewModel.stopAudio() },
+                    onSpeakWord      = { viewModel.speakWord(it) },
+                    onSaveWord       = { viewModel.saveWord(it) },
+                    onRemoveWord     = { viewModel.removeWord(it) },
+                    onOpenSettings   = { showApiModal = true }
+                )
+                1 -> VocabularyScreen(
+                    vocabulary   = savedVocab,
+                    useSimplified = useSimplified,
+                    onDismiss    = { selectedTab = 0 },
+                    onRemove     = { viewModel.removeWord(it) },
+                    onSpeak      = { viewModel.speakWord(it) }
+                )
+            }
         }
     }
 }
@@ -325,74 +304,97 @@ fun TranslateTab(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Background)
             .statusBarsPadding()
     ) {
         // App bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "Deconstruct Chinese",
-                color = TextPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onOpenSettings) {
-                    Icon(Icons.Default.Menu, contentDescription = "Settings", tint = TextSecondary)
+            Column {
+                Text(
+                    "Deconstruct",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = TextPrimary
+                )
+                Text(
+                    "Chinese",
+                    style = MaterialTheme.typography.headlineSmall.copy(color = BluePrimary)
+                )
+            }
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Card)
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = TextSecondary)
+            }
+        }
+
+        // Language direction bar
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val chineseLabel = if (useSimplified) "Simplified" else "Traditional"
+                
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onSwapDirection() }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (toEnglish) chineseLabel else "English",
+                        color = BluePrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+                
+                IconButton(
+                    onClick = onSwapDirection,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Background)
+                ) {
+                    Icon(Icons.Default.SwapHoriz, contentDescription = "Swap", tint = BluePrimary)
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onSwapDirection() }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        if (toEnglish) "English" else chineseLabel,
+                        color = BluePrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
                 }
             }
         }
 
-        val chineseLabel = if (useSimplified) "Simplified Chinese" else "Traditional Chinese"
-
-        // Language direction bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Surface),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onSwapDirection() }
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    if (toEnglish) chineseLabel else "English",
-                    color = BluePrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                )
-            }
-            IconButton(onClick = onSwapDirection) {
-                Icon(Icons.Default.SwapHoriz, contentDescription = "Swap direction", tint = TextSecondary)
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onSwapDirection() }
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    if (toEnglish) "English" else chineseLabel,
-                    color = BluePrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                )
-            }
-        }
-
-        HorizontalDivider(color = Divider)
+        Spacer(Modifier.height(16.dp))
 
         // Scrollable body
         Column(
@@ -401,132 +403,121 @@ fun TranslateTab(
                 .verticalScroll(rememberScrollState())
         ) {
             // Input panel
-            Box(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Surface)
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(16.dp)
                 ) {
-                    TextField(
-                        value = inputText,
-                        onValueChange = onInputChange,
-                        placeholder = {
-                            Text(
-                                if (toEnglish) "Enter Chinese text" else "Enter English text",
-                                color = TextSecondary.copy(alpha = 0.4f),
-                                fontSize = 22.sp
+                    Box {
+                        TextField(
+                            value = inputText,
+                            onValueChange = onInputChange,
+                            placeholder = {
+                                Text(
+                                    if (toEnglish) "Type or paste Chinese..." else "Type English text...",
+                                    color = TextSecondary.copy(alpha = 0.4f),
+                                    fontSize = 20.sp
+                                )
+                            },
+                            textStyle = TextStyle(fontSize = 20.sp, color = TextPrimary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor   = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor   = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor             = BluePrimary
                             )
-                        },
-                        textStyle = TextStyle(fontSize = 22.sp, color = TextPrimary),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 130.dp)
-                            .padding(end = 32.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor   = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor   = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            cursorColor             = BluePrimary,
-                            focusedTextColor        = TextPrimary,
-                            unfocusedTextColor      = TextPrimary
-                        ),
-                        maxLines = 6
-                    )
+                        )
+                        
+                        if (inputText.isNotEmpty()) {
+                            IconButton(
+                                onClick  = onClear,
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        when {
-                            translationState is TranslationState.Loading -> Row(
-                                modifier = Modifier.padding(end = 16.dp, bottom = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier    = Modifier.size(16.dp),
-                                    color       = BluePrimary,
-                                    strokeWidth = 2.dp
-                                )
-                                Text("Translating...", color = TextSecondary, fontSize = 14.sp)
-                            }
-                            inputText.isEmpty() -> TextButton(
-                                onClick  = {
+                        if (inputText.isEmpty()) {
+                            TextButton(
+                                onClick = {
                                     val pasted = clipboardManager.getText()?.text.orEmpty()
                                     if (pasted.isNotEmpty()) onInputChange(pasted)
                                 },
-                                modifier = Modifier.padding(end = 8.dp, bottom = 4.dp)
+                                colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
                             ) {
-                                Icon(
-                                    Icons.Default.ContentPaste,
-                                    contentDescription = null,
-                                    tint     = BluePrimary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text("Paste", color = BluePrimary)
+                                Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Paste from clipboard", fontSize = 13.sp)
                             }
-                            else -> TextButton(
-                                onClick  = onTranslate,
-                                modifier = Modifier.padding(end = 8.dp, bottom = 4.dp)
+                        } else {
+                            Spacer(Modifier.weight(1f))
+                        }
+
+                        if (translationState is TranslationState.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp).padding(end = 8.dp),
+                                color = BluePrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else if (inputText.isNotEmpty() && translationState !is TranslationState.Success) {
+                            Button(
+                                onClick = onTranslate,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                             ) {
-                                Text(
-                                    if (apiKey.isBlank()) "Enter API Key" else "Translate",
-                                    color = BluePrimary
-                                )
+                                Text(if (apiKey.isBlank()) "Setup API" else "Translate", fontSize = 14.sp)
                             }
                         }
                     }
                 }
-
-                // Clear button — top right corner of input panel
-                if (inputText.isNotEmpty()) {
-                    IconButton(
-                        onClick  = onClear,
-                        modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Clear",
-                            tint     = TextSecondary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
             }
-
-            // Divider between input and output
-            HorizontalDivider(color = Divider, thickness = 2.dp)
 
             // Output
             AnimatedVisibility(
                 visible = translationState is TranslationState.Success || translationState is TranslationState.Error,
-                enter   = fadeIn() + slideInVertically(),
+                enter   = fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { it / 2 }),
                 exit    = fadeOut()
             ) {
-                when (val state = translationState) {
-                    is TranslationState.Success -> TranslationResultCard(
-                        result       = state.result,
-                        toEnglish    = toEnglish,
-                        isPlaying    = isPlaying,
-                        savedVocab   = savedVocab,
-                        useSimplified = useSimplified,
-                        onSpeak      = onSpeak,
-                        onStop       = onStop,
-                        onSpeakWord  = onSpeakWord,
-                        onSaveWord   = onSaveWord,
-                        onRemoveWord = onRemoveWord
-                    )
-                    is TranslationState.Error -> ErrorCard(state.message)
-                    else -> {}
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    when (val state = translationState) {
+                        is TranslationState.Success -> TranslationResultCard(
+                            result       = state.result,
+                            toEnglish    = toEnglish,
+                            isPlaying    = isPlaying,
+                            savedVocab   = savedVocab,
+                            useSimplified = useSimplified,
+                            onSpeak      = onSpeak,
+                            onStop       = onStop,
+                            onSpeakWord  = onSpeakWord,
+                            onSaveWord   = onSaveWord,
+                            onRemoveWord = onRemoveWord
+                        )
+                        is TranslationState.Error -> Box(Modifier.padding(horizontal = 16.dp)) {
+                            ErrorCard(state.message)
+                        }
+                        else -> {}
+                    }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
