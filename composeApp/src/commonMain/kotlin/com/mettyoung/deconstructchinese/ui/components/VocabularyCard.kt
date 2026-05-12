@@ -34,7 +34,7 @@ fun VocabularyCard(
     onSaveToggle: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
-    val simplified: String? = item.simplified
+    val simplified: String? = item.simplified?.takeIf { it != item.word }
         ?: ChineseScriptConverter.toSimplified(item.word).takeIf { it != item.word }
     val mainWord = if (useSimplified) simplified ?: item.word else item.word
     val counterpartWord = if (simplified != null) {
