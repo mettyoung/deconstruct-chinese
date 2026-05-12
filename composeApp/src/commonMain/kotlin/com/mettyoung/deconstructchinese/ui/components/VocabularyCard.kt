@@ -22,7 +22,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.VocabularyItem
-import com.mettyoung.deconstructchinese.util.ChineseScriptConverter
 import com.mettyoung.deconstructchinese.ui.theme.*
 
 @Composable
@@ -35,7 +34,6 @@ fun VocabularyCard(
 ) {
     val clipboardManager = LocalClipboardManager.current
     val simplified: String? = item.simplified?.takeIf { it != item.word }
-        ?: ChineseScriptConverter.toSimplified(item.word).takeIf { it != item.word }
     val mainWord = if (useSimplified) simplified ?: item.word else item.word
     val counterpartWord = if (simplified != null) {
         if (useSimplified) item.word else simplified

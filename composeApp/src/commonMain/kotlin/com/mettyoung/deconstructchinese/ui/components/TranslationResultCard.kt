@@ -37,7 +37,6 @@ private fun ChineseWithPinyin(
     ) {
         vocabulary.forEach { item ->
             val simplified: String? = item.simplified?.takeIf { it != item.word }
-                ?: ChineseScriptConverter.toSimplified(item.word).takeIf { it != item.word }
             
             val displayWord = if (useSimplified) simplified ?: item.word else item.word
             val counterpartWord = if (simplified != null) {

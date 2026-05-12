@@ -43,10 +43,14 @@ object VocabularyStore {
         persist(_savedVocabulary.value.filter { it.word != item.word })
     }
 
-    fun bumpFrequency(word: String) {
+    fun bumpFrequency(item: VocabularyItem) {
         val currentList = _savedVocabulary.value
-        if (!currentList.any { it.word == word }) return
-        persist(currentList.map { if (it.word == word) it.copy(frequency = it.frequency + 1) else it })
+        if (!currentList.any { it.word == item.word }) return
+        persist(currentList.map {
+            if (it.word == item.word)
+                it.copy(frequency = it.frequency + 1, simplified = item.simplified ?: it.simplified)
+            else it
+        })
     }
 
     fun isSaved(word: String): Boolean {
