@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="splash_green">#3DDC84</color>
+    <style name="Theme.DeconstructChinese" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/splash_green</item>
+    </style>
+</resources>
