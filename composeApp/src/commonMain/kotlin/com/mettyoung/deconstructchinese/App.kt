@@ -105,7 +105,10 @@ fun ApiKeyModal(
                     Switch(
                         checked = useSimplified,
                         onCheckedChange = onUseSimplifiedChange,
-                        colors = SwitchDefaults.colors(checkedThumbColor = BluePrimary)
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = BluePrimary
+                        )
                     )
                 }
 
