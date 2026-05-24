@@ -38,10 +38,17 @@ kotlin {
     }
     
     sourceSets {
+        val webMain by creating {
+            dependsOn(commonMain.get())
+        }
+        jsMain.get().dependsOn(webMain)
+        wasmJsMain.get().dependsOn(webMain)
+
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.mlkit.text.recognition)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
