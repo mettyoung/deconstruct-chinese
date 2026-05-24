@@ -1,12 +1,17 @@
 package com.mettyoung.deconstructchinese
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -34,8 +40,10 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
+import com.mettyoung.deconstructchinese.ui.ImagePickerLauncher
 import com.mettyoung.deconstructchinese.ui.components.ErrorCard
 import com.mettyoung.deconstructchinese.ui.components.TranslationResultCard
+import com.mettyoung.deconstructchinese.ui.rememberImagePickerLauncher
 import com.mettyoung.deconstructchinese.ui.screens.VocabularyScreen
 import com.mettyoung.deconstructchinese.ui.theme.*
 import com.mettyoung.deconstructchinese.viewmodel.TranslatorViewModel
@@ -172,12 +180,25 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
         )
     }
 
-    val inputText        by viewModel.inputText.collectAsStateWithLifecycle()
-    val translationState by viewModel.translationState.collectAsStateWithLifecycle()
-    val isPlaying        by viewModel.isPlaying.collectAsStateWithLifecycle()
-    val savedVocab       by viewModel.savedVocabulary.collectAsStateWithLifecycle()
-    val toEnglish        by viewModel.toEnglish.collectAsStateWithLifecycle()
-    val useSimplified    by viewModel.useSimplified.collectAsStateWithLifecycle()
+    val inputText          by viewModel.inputText.collectAsStateWithLifecycle()
+    val translationState   by viewModel.translationState.collectAsStateWithLifecycle()
+    val isPlaying          by viewModel.isPlaying.collectAsStateWithLifecycle()
+    val savedVocab         by viewModel.savedVocabulary.collectAsStateWithLifecycle()
+    val toEnglish          by viewModel.toEnglish.collectAsStateWithLifecycle()
+    val useSimplified      by viewModel.useSimplified.collectAsStateWithLifecycle()
+    val isRecording        by viewModel.isRecording.collectAsStateWithLifecycle()
+    val isProcessingImage  by viewModel.isProcessingImage.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.snackbarMessage.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    val imagePicker = rememberImagePickerLauncher { bytes ->
+        viewModel.processImage(bytes)
+    }
 
     var showApiModal by remember { mutableStateOf(false) }
     var selectedTab  by rememberSaveable { mutableIntStateOf(0) }
@@ -194,6 +215,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
 
     Scaffold(
         containerColor = Background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar(
                 containerColor = Surface,
@@ -225,7 +247,7 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                                         contentColor = Color.White
                                     ) {
                                         Text(
-                                            "${savedVocab.size}", 
+                                            "${savedVocab.size}",
                                             fontSize = 10.sp,
                                             modifier = Modifier.padding(horizontal = 4.dp)
                                         )
@@ -255,9 +277,12 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     translationState = translationState,
                     toEnglish        = toEnglish,
                     isPlaying        = isPlaying,
+                    isRecording      = isRecording,
+                    isProcessingImage = isProcessingImage,
                     savedVocab       = savedVocab,
                     apiKey           = apiKey,
                     useSimplified    = useSimplified,
+                    imagePicker      = imagePicker,
                     onInputChange    = { viewModel.onInputTextChange(it) },
                     onClear          = { viewModel.clearAll() },
                     onTranslate      = { if (apiKey.isBlank()) showApiModal = true else viewModel.translate() },
@@ -267,7 +292,9 @@ fun TranslatorScreen(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     onSpeakWord      = { viewModel.speakWord(it) },
                     onSaveWord       = { viewModel.saveWord(it) },
                     onRemoveWord     = { viewModel.removeWord(it) },
-                    onOpenSettings   = { showApiModal = true }
+                    onOpenSettings   = { showApiModal = true },
+                    onStartRecording = { viewModel.startRecording() },
+                    onStopRecording  = { viewModel.stopRecording() }
                 )
                 1 -> VocabularyScreen(
                     vocabulary   = savedVocab,
@@ -288,9 +315,12 @@ fun TranslateTab(
     translationState: TranslationState,
     toEnglish: Boolean,
     isPlaying: Boolean,
+    isRecording: Boolean,
+    isProcessingImage: Boolean,
     savedVocab: List<VocabularyItem>,
     apiKey: String,
     useSimplified: Boolean,
+    imagePicker: ImagePickerLauncher,
     onInputChange: (String) -> Unit,
     onClear: () -> Unit,
     onTranslate: () -> Unit,
@@ -300,9 +330,73 @@ fun TranslateTab(
     onSpeakWord: (String) -> Unit,
     onSaveWord: (VocabularyItem) -> Unit,
     onRemoveWord: (VocabularyItem) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onStartRecording: () -> Unit,
+    onStopRecording: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            containerColor = Surface,
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("Add Image", style = MaterialTheme.typography.titleLarge) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showImageSourceDialog = false
+                                imagePicker.launchCamera()
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = BluePrimary)
+                        Text("Take Photo", fontSize = 16.sp)
+                    }
+                    HorizontalDivider(color = Divider)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                showImageSourceDialog = false
+                                imagePicker.launchGallery()
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = BluePrimary)
+                        Text("Choose from Gallery", fontSize = 16.sp)
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showImageSourceDialog = false }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            }
+        )
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "mic")
+    val micPulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "micAlpha"
+    )
 
     Column(
         modifier = modifier
@@ -352,7 +446,7 @@ fun TranslateTab(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val chineseLabel = if (useSimplified) "Simplified" else "Traditional"
-                
+
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -368,7 +462,7 @@ fun TranslateTab(
                         fontSize = 14.sp
                     )
                 }
-                
+
                 IconButton(
                     onClick = onSwapDirection,
                     modifier = Modifier
@@ -378,7 +472,7 @@ fun TranslateTab(
                 ) {
                     Icon(Icons.Default.SwapHoriz, contentDescription = "Swap", tint = BluePrimary)
                 }
-                
+
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -440,7 +534,7 @@ fun TranslateTab(
                                 cursorColor             = BluePrimary
                             )
                         )
-                        
+
                         if (inputText.isNotEmpty()) {
                             IconButton(
                                 onClick  = onClear,
@@ -456,22 +550,86 @@ fun TranslateTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (inputText.isEmpty()) {
-                            TextButton(
-                                onClick = {
-                                    val pasted = clipboardManager.getText()?.text.orEmpty()
-                                    if (pasted.isNotEmpty()) onInputChange(pasted)
-                                },
-                                colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
-                            ) {
-                                Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Paste from clipboard", fontSize = 13.sp)
+                        // Left side: paste / mic / camera
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (inputText.isEmpty()) {
+                                TextButton(
+                                    onClick = {
+                                        val pasted = clipboardManager.getText()?.text.orEmpty()
+                                        if (pasted.isNotEmpty()) onInputChange(pasted)
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
+                                ) {
+                                    Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Paste", fontSize = 13.sp)
+                                }
                             }
-                        } else {
-                            Spacer(Modifier.weight(1f))
+
+                            if (!isWebPlatform) {
+                                // Mic hold-to-record button
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isRecording) GoldAccent.copy(alpha = micPulseAlpha)
+                                            else Color.Transparent
+                                        )
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(onPress = { _ ->
+                                                onStartRecording()
+                                                try {
+                                                    awaitRelease()
+                                                } finally {
+                                                    onStopRecording()
+                                                }
+                                            })
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Mic,
+                                        contentDescription = "Hold to record",
+                                        tint = if (isRecording) Color.White else TextSecondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Camera button
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isProcessingImage) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = BluePrimary,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        IconButton(
+                                            onClick = { showImageSourceDialog = true },
+                                            enabled = !isRecording
+                                        ) {
+                                            Icon(
+                                                Icons.Default.CameraAlt,
+                                                contentDescription = "Scan image",
+                                                tint = TextSecondary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
+                        // Right side: translate / loading
                         if (translationState is TranslationState.Loading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp).padding(end = 8.dp),

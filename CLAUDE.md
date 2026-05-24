@@ -18,6 +18,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Translation**: Qwen API (qwen-plus model)
 - **Build**: Gradle 8.11 with version catalog (libs.versions.toml)
 - **Audio**: Platform-specific TTS (Android MediaPlayer, iOS AVFoundation expect/actual)
+- **Speech Input**: Hold-to-record via `SpeechRecognizer` expect/actual (Android `android.speech`, iOS `SFSpeechRecognizer`)
+- **OCR**: `OcrReader` expect/actual (Android ML Kit, iOS Vision framework)
+- **Image Picker**: `rememberImagePickerLauncher` expect fun (Android ActivityResultContracts, iOS UIImagePickerController)
 
 ### Target Platforms
 
@@ -74,6 +77,11 @@ Open `/iosApp` in Xcode and run via IDE (KMP bridging through framework in `comp
 - `useSimplified`: Traditional vs simplified preference
 - `savedVocabulary`: StateFlow from VocabularyStore
 - `isPlaying`: Audio playback status
+- `isRecording`: Hold-to-record mic state
+- `isProcessingImage`: OCR in-progress state
+- `snackbarMessage`: SharedFlow for speech/OCR errors (non-fatal, shown as snackbar)
+- `startRecording()` / `stopRecording()`: wraps SpeechRecognizer
+- `processImage(ByteArray)`: runs OcrReader, sets inputText on success
 
 ViewModel created once per app lifecycle; state flows collected in Compose via `collectAsStateWithLifecycle()`.
 
@@ -128,6 +136,10 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **AppContext** (Android only):
 - Holds global Android Context for platform APIs
+
+**`webMain` sourceSet** (intermediate for `jsMain` + `wasmJsMain`):
+- Explicitly configured via `dependsOn(commonMain)` in `build.gradle.kts`
+- Contains stubs for AudioPlayer, SpeechRecognizer, OcrReader, ImagePickerLauncher, and `isWebPlatform = true`
 
 ## Key Design Decisions
 
