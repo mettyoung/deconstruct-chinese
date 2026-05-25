@@ -3,7 +3,7 @@ package com.mettyoung.deconstructchinese.ocr
 import android.graphics.BitmapFactory
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -11,7 +11,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 actual class OcrReader actual constructor() {
-    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
 
     actual fun recognizeText(imageBytes: ByteArray): Flow<OcrResult> = flow {
         val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)

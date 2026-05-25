@@ -48,7 +48,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.mlkit.text.recognition)
+            implementation(libs.mlkit.text.recognition.chinese)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

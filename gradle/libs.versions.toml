@@ -56,6 +56,7 @@ multiplatform-settings = { module = "com.russhwolf:multiplatform-settings-no-arg
 multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "multiplatformSettings" }
 
 mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkit-text-recognition" }
+mlkit-text-recognition-chinese = { module = "com.google.mlkit:text-recognition-chinese", version.ref = "mlkit-text-recognition" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
