@@ -572,31 +572,45 @@ fun TranslateTab(
                             if (!isWebPlatform) {
                                 // Mic hold-to-record button
                                 Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isRecording) GoldAccent.copy(alpha = micPulseAlpha)
-                                            else Color.Transparent
-                                        )
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(onPress = { _ ->
-                                                onStartRecording()
-                                                try {
-                                                    awaitRelease()
-                                                } finally {
-                                                    onStopRecording()
-                                                }
-                                            })
-                                        },
-                                    contentAlignment = Alignment.Center
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(56.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Mic,
-                                        contentDescription = "Hold to record",
-                                        tint = if (isRecording) Color.White else TextSecondary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    // Pulsing outer ring when recording
+                                    if (isRecording) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .clip(CircleShape)
+                                                .background(GoldAccent.copy(alpha = micPulseAlpha * 0.45f))
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isRecording) GoldAccent
+                                                else Color.Transparent
+                                            )
+                                            .pointerInput(Unit) {
+                                                detectTapGestures(onPress = { _ ->
+                                                    onStartRecording()
+                                                    try {
+                                                        awaitRelease()
+                                                    } finally {
+                                                        onStopRecording()
+                                                    }
+                                                })
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Mic,
+                                            contentDescription = "Hold to record",
+                                            tint = if (isRecording) Color.White else TextSecondary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
 
                                 // Camera button
