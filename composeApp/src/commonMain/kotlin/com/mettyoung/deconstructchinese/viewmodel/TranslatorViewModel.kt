@@ -132,6 +132,9 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     }
 
     fun startRecording() {
+        translateJob?.cancel()
+        _inputText.value = ""
+        _translationState.value = TranslationState.Idle
         _isRecording.value = true
         val locale = if (_toEnglish.value) "en-US" else "zh-CN"
         speechRecognizer.startListening(locale)
