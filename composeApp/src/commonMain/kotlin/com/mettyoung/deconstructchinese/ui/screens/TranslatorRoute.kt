@@ -54,7 +54,7 @@ fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     val savedVocab by viewModel.savedVocabulary.collectAsStateWithLifecycle()
     val toEnglish by viewModel.toEnglish.collectAsStateWithLifecycle()
     val useSimplified by viewModel.useSimplified.collectAsStateWithLifecycle()
-    val isRecording by viewModel.isRecording.collectAsStateWithLifecycle()
+    val recordingPhase by viewModel.recordingPhase.collectAsStateWithLifecycle()
     val isProcessingImage by viewModel.isProcessingImage.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -95,7 +95,7 @@ fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     translationState = translationState,
                     toEnglish = toEnglish,
                     isPlaying = isPlaying,
-                    isRecording = isRecording,
+                    recordingPhase = recordingPhase,
                     isProcessingImage = isProcessingImage,
                     savedVocab = savedVocab,
                     apiKey = apiKey,

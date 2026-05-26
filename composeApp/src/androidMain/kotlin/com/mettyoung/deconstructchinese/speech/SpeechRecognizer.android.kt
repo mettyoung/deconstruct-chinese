@@ -21,8 +21,12 @@ actual class SpeechRecognizer actual constructor() {
         recognizer?.destroy()
         recognizer = AndroidSpeechRecognizer.createSpeechRecognizer(ctx).apply {
             setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle) {}
-                override fun onBeginningOfSpeech() {}
+                override fun onReadyForSpeech(params: Bundle) {
+                    _results.tryEmit(SpeechResult.Ready)
+                }
+                override fun onBeginningOfSpeech() {
+                    _results.tryEmit(SpeechResult.SpeechStarted)
+                }
                 override fun onRmsChanged(rmsdB: Float) {}
                 override fun onBufferReceived(buffer: ByteArray) {}
                 override fun onEndOfSpeech() {}

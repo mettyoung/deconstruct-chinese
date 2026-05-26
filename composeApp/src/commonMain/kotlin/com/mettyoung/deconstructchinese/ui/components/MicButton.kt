@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
 
 private val ButtonSize = 64.dp
@@ -31,28 +32,36 @@ private val ContainerSize = 96.dp
 
 @Composable
 fun MicButton(
-    isRecording: Boolean,
+    recordingPhase: RecordingPhase,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit
 ) {
+    val active = recordingPhase != RecordingPhase.Idle
+    val listening = recordingPhase == RecordingPhase.Listening
+
     val transition = rememberInfiniteTransition(label = "mic")
     val ripple by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(1200, easing = LinearEasing), repeatMode = RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(
+            animation = tween(if (listening) 800 else 1300, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
         label = "micRipple"
     )
+    val maxScale = if (listening) 0.5f else 0.4f
+    val maxAlpha = if (listening) 0.5f else 0.3f
 
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(ContainerSize)) {
-        if (isRecording) {
+        if (active) {
             Box(
                 modifier = Modifier
                     .size(ButtonSize)
                     .graphicsLayer {
-                        val scale = 1f + ripple * 0.5f
+                        val scale = 1f + ripple * maxScale
                         scaleX = scale
                         scaleY = scale
-                        alpha = (1f - ripple) * 0.45f
+                        alpha = (1f - ripple) * maxAlpha
                     }
                     .clip(CircleShape)
                     .background(BluePrimary)
@@ -61,7 +70,7 @@ fun MicButton(
         Box(
             modifier = Modifier
                 .size(ButtonSize)
-                .shadow(if (isRecording) 10.dp else 6.dp, CircleShape)
+                .shadow(if (active) 10.dp else 6.dp, CircleShape)
                 .clip(CircleShape)
                 .background(BluePrimary)
                 .pointerInput(Unit) {

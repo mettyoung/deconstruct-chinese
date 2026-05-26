@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.ui.ImagePickerLauncher
@@ -54,7 +55,7 @@ fun TranslateScreen(
     translationState: TranslationState,
     toEnglish: Boolean,
     isPlaying: Boolean,
-    isRecording: Boolean,
+    recordingPhase: RecordingPhase,
     isProcessingImage: Boolean,
     savedVocab: List<VocabularyItem>,
     apiKey: String,
@@ -99,7 +100,7 @@ fun TranslateScreen(
             InputPanel(
                 inputText = inputText,
                 toEnglish = toEnglish,
-                isRecording = isRecording,
+                recordingPhase = recordingPhase,
                 isProcessingImage = isProcessingImage,
                 translationState = translationState,
                 apiKey = apiKey,

@@ -1,5 +1,6 @@
 package com.mettyoung.deconstructchinese.ui.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.isWebPlatform
+import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
 import com.mettyoung.deconstructchinese.ui.theme.Divider
@@ -50,7 +52,7 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 fun InputPanel(
     inputText: String,
     toEnglish: Boolean,
-    isRecording: Boolean,
+    recordingPhase: RecordingPhase,
     isProcessingImage: Boolean,
     translationState: TranslationState,
     apiKey: String,
@@ -63,6 +65,7 @@ fun InputPanel(
     modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val recording = recordingPhase != RecordingPhase.Idle
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -77,11 +80,19 @@ fun InputPanel(
                     value = inputText,
                     onValueChange = onInputChange,
                     placeholder = {
-                        Text(
-                            if (toEnglish) "Type or paste Chinese..." else "Type English text...",
-                            color = TextSecondary.copy(alpha = 0.4f),
-                            fontSize = 20.sp
-                        )
+                        val hint = when (recordingPhase) {
+                            RecordingPhase.Armed -> "Speak now"
+                            RecordingPhase.Listening -> "Listening…"
+                            RecordingPhase.Idle ->
+                                if (toEnglish) "Type or paste Chinese..." else "Type English text..."
+                        }
+                        Crossfade(targetState = hint, label = "placeholder") { text ->
+                            Text(
+                                text,
+                                color = if (recording) BluePrimary else TextSecondary.copy(alpha = 0.4f),
+                                fontSize = 20.sp
+                            )
+                        }
                     },
                     textStyle = TextStyle(fontSize = 20.sp, color = TextPrimary),
                     modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
@@ -131,13 +142,13 @@ fun InputPanel(
                                 if (isProcessingImage) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = BluePrimary, strokeWidth = 2.dp)
                                 } else {
-                                    IconButton(onClick = onScanImage, enabled = !isRecording) {
+                                    IconButton(onClick = onScanImage, enabled = !recording) {
                                         Icon(Icons.Default.CameraAlt, contentDescription = "Scan image", tint = TextSecondary, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
                             MicButton(
-                                isRecording = isRecording,
+                                recordingPhase = recordingPhase,
                                 onStartRecording = onStartRecording,
                                 onStopRecording = onStopRecording
                             )

@@ -18,6 +18,7 @@ actual class SpeechRecognizer actual constructor() {
     private var recognitionTask: SFSpeechRecognitionTask? = null
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest? = null
     private var sfRecognizer: SFSpeechRecognizer? = null
+    private var hasDetectedSpeech = false
 
     actual fun startListening(locale: String) {
         SFSpeechRecognizer.requestAuthorization { status ->
@@ -36,6 +37,7 @@ actual class SpeechRecognizer actual constructor() {
     }
 
     private fun startRecognition(locale: String) {
+        hasDetectedSpeech = false
         sfRecognizer = SFSpeechRecognizer(NSLocale(locale))
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest().also {
             it.shouldReportPartialResults = true
@@ -45,6 +47,10 @@ actual class SpeechRecognizer actual constructor() {
             error?.let { _results.tryEmit(SpeechResult.Error(it.localizedDescription)) }
             result?.let {
                 val text = it.bestTranscription.formattedString
+                if (!hasDetectedSpeech && text.isNotBlank()) {
+                    hasDetectedSpeech = true
+                    _results.tryEmit(SpeechResult.SpeechStarted)
+                }
                 if (it.isFinal()) {
                     _results.tryEmit(SpeechResult.Final(text))
                 } else {
@@ -63,7 +69,9 @@ actual class SpeechRecognizer actual constructor() {
         memScoped {
             val errorPtr = alloc<ObjCObjectVar<NSError?>>()
             val started = audioEngine.startAndReturnError(errorPtr.ptr)
-            if (!started) {
+            if (started) {
+                _results.tryEmit(SpeechResult.Ready)
+            } else {
                 val msg = errorPtr.value?.localizedDescription ?: "Audio engine failed to start"
                 _results.tryEmit(SpeechResult.Error(msg))
             }

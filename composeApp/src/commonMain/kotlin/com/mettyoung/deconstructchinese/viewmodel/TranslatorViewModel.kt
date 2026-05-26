@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mettyoung.deconstructchinese.audio.AudioPlayer
 import com.mettyoung.deconstructchinese.model.Language
+import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.QwenService
@@ -42,8 +43,8 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
-    private val _isRecording = MutableStateFlow(false)
-    val isRecording: StateFlow<Boolean> = _isRecording.asStateFlow()
+    private val _recordingPhase = MutableStateFlow(RecordingPhase.Idle)
+    val recordingPhase: StateFlow<RecordingPhase> = _recordingPhase.asStateFlow()
 
     private val _isProcessingImage = MutableStateFlow(false)
     val isProcessingImage: StateFlow<Boolean> = _isProcessingImage.asStateFlow()
@@ -65,15 +66,30 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         viewModelScope.launch {
             speechRecognizer.results.collect { result ->
                 when (result) {
+                    is SpeechResult.Ready -> {
+                        if (_recordingPhase.value != RecordingPhase.Idle) {
+                            _recordingPhase.value = RecordingPhase.Armed
+                        }
+                    }
+                    is SpeechResult.SpeechStarted -> {
+                        if (_recordingPhase.value != RecordingPhase.Idle) {
+                            _recordingPhase.value = RecordingPhase.Listening
+                        }
+                    }
+                    is SpeechResult.Partial -> {
+                        // Stream recognized words live without scheduling a translate.
+                        if (_recordingPhase.value != RecordingPhase.Idle) {
+                            _inputText.value = result.text
+                        }
+                    }
                     is SpeechResult.Final -> {
-                        _isRecording.value = false
+                        _recordingPhase.value = RecordingPhase.Idle
                         onInputTextChange(result.text)
                     }
                     is SpeechResult.Error -> {
-                        _isRecording.value = false
+                        _recordingPhase.value = RecordingPhase.Idle
                         _snackbarMessage.tryEmit(result.message)
                     }
-                    is SpeechResult.Partial -> {}
                 }
             }
         }
@@ -136,7 +152,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         translateJob?.cancel()
         _inputText.value = ""
         _translationState.value = TranslationState.Idle
-        _isRecording.value = true
+        _recordingPhase.value = RecordingPhase.Armed
         // Source side of the toggle: toEnglish == translating Chinese -> English.
         val locale = if (_toEnglish.value) {
             if (_useSimplified.value) "zh-CN" else "zh-TW"
@@ -147,7 +163,9 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     }
 
     fun stopRecording() {
-        _isRecording.value = false
+        if (_recordingPhase.value != RecordingPhase.Idle) {
+            _recordingPhase.value = RecordingPhase.Idle
+        }
         speechRecognizer.stopListening()
     }
 
