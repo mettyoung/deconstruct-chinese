@@ -8,6 +8,7 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import platform.Foundation.NSData
 import platform.UIKit.*
+import platform.darwin.NSObject
 import platform.posix.memcpy
 
 @OptIn(ExperimentalForeignApi::class)

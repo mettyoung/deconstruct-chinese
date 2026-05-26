@@ -7,6 +7,7 @@ import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.QwenService
+import com.mettyoung.deconstructchinese.ocr.OcrLanguage
 import com.mettyoung.deconstructchinese.ocr.OcrReader
 import com.mettyoung.deconstructchinese.ocr.OcrResult
 import com.mettyoung.deconstructchinese.speech.SpeechRecognizer
@@ -136,7 +137,12 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         _inputText.value = ""
         _translationState.value = TranslationState.Idle
         _isRecording.value = true
-        val locale = if (_toEnglish.value) "en-US" else "zh-CN"
+        // Source side of the toggle: toEnglish == translating Chinese -> English.
+        val locale = if (_toEnglish.value) {
+            if (_useSimplified.value) "zh-CN" else "zh-TW"
+        } else {
+            "en-US"
+        }
         speechRecognizer.startListening(locale)
     }
 
@@ -146,9 +152,11 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
     }
 
     fun processImage(imageBytes: ByteArray) {
+        // Source side of the toggle: toEnglish == translating Chinese -> English.
+        val language = if (_toEnglish.value) OcrLanguage.CHINESE else OcrLanguage.ENGLISH
         _isProcessingImage.value = true
         viewModelScope.launch {
-            ocrReader.recognizeText(imageBytes).collect { result ->
+            ocrReader.recognizeText(imageBytes, language).collect { result ->
                 _isProcessingImage.value = false
                 when (result) {
                     is OcrResult.Success -> onInputTextChange(result.text)

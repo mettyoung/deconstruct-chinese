@@ -4,6 +4,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
 actual class OcrReader actual constructor() {
-    actual fun recognizeText(imageBytes: ByteArray): Flow<OcrResult> =
+    actual fun recognizeText(imageBytes: ByteArray, language: OcrLanguage): Flow<OcrResult> =
         flowOf(OcrResult.Error("unsupported"))
 }

@@ -37,17 +37,16 @@ kotlin {
         binaries.executable()
     }
     
-    sourceSets {
-        val webMain by creating {
-            dependsOn(commonMain.get())
-        }
-        jsMain.get().dependsOn(webMain)
-        wasmJsMain.get().dependsOn(webMain)
+    // Default hierarchy template wires iosMain -> ios{Arm64,SimulatorArm64}Main
+    // and a webMain grouping js + wasmJs, matching the src/iosMain and src/webMain dirs.
+    applyDefaultHierarchyTemplate()
 
+    sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.mlkit.text.recognition)
             implementation(libs.mlkit.text.recognition.chinese)
         }
         commonMain.dependencies {

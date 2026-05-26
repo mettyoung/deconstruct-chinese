@@ -45,7 +45,7 @@ actual class SpeechRecognizer actual constructor() {
             error?.let { _results.tryEmit(SpeechResult.Error(it.localizedDescription)) }
             result?.let {
                 val text = it.bestTranscription.formattedString
-                if (it.isFinal) {
+                if (it.isFinal()) {
                     _results.tryEmit(SpeechResult.Final(text))
                 } else {
                     _results.tryEmit(SpeechResult.Partial(text))
@@ -71,7 +71,7 @@ actual class SpeechRecognizer actual constructor() {
     }
 
     actual fun stopListening() {
-        if (audioEngine.isRunning) {
+        if (audioEngine.isRunning()) {
             audioEngine.stop()
             audioEngine.inputNode.removeTapOnBus(0u)
         }

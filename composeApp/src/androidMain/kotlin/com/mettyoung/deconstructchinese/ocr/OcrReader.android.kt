@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -11,9 +12,18 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 actual class OcrReader actual constructor() {
-    private val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+    private val chineseRecognizer by lazy {
+        TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+    }
+    private val latinRecognizer by lazy {
+        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    }
 
-    actual fun recognizeText(imageBytes: ByteArray): Flow<OcrResult> = flow {
+    actual fun recognizeText(imageBytes: ByteArray, language: OcrLanguage): Flow<OcrResult> = flow {
+        val recognizer = when (language) {
+            OcrLanguage.CHINESE -> chineseRecognizer
+            OcrLanguage.ENGLISH -> latinRecognizer
+        }
         val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
             ?: run { emit(OcrResult.Error("Failed to decode image")); return@flow }
         val inputImage = InputImage.fromBitmap(bitmap, 0)
