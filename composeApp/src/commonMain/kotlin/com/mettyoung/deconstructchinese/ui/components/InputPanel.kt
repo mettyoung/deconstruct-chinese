@@ -115,17 +115,21 @@ fun InputPanel(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (inputText.isEmpty()) {
-                    TextButton(
-                        onClick = {
-                            val pasted = clipboardManager.getText()?.text.orEmpty()
-                            if (pasted.isNotEmpty()) onInputChange(pasted)
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
-                    ) {
-                        Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Paste", fontSize = 13.sp)
+                // Keep this branch (and the mic at a stable call site) while recording,
+                // so streaming partials filling the field don't unmount the button mid-hold.
+                if (inputText.isEmpty() || recording) {
+                    if (inputText.isEmpty()) {
+                        TextButton(
+                            onClick = {
+                                val pasted = clipboardManager.getText()?.text.orEmpty()
+                                if (pasted.isNotEmpty()) onInputChange(pasted)
+                            },
+                            colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
+                        ) {
+                            Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Paste", fontSize = 13.sp)
+                        }
                     }
 
                     Spacer(Modifier.weight(1f))
