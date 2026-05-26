@@ -1,5 +1,6 @@
 package com.mettyoung.deconstructchinese.ui.components
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -18,11 +19,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
-import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
+import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
+
+private val ButtonSize = 64.dp
+private val ContainerSize = 96.dp
 
 @Composable
 fun MicButton(
@@ -31,27 +36,34 @@ fun MicButton(
     onStopRecording: () -> Unit
 ) {
     val transition = rememberInfiniteTransition(label = "mic")
-    val pulseAlpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(animation = tween(600), repeatMode = RepeatMode.Reverse),
-        label = "micAlpha"
+    val ripple by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(animation = tween(1200, easing = LinearEasing), repeatMode = RepeatMode.Restart),
+        label = "micRipple"
     )
 
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(56.dp)) {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(ContainerSize)) {
         if (isRecording) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(ButtonSize)
+                    .graphicsLayer {
+                        val scale = 1f + ripple * 0.5f
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = (1f - ripple) * 0.45f
+                    }
                     .clip(CircleShape)
-                    .background(GoldAccent.copy(alpha = pulseAlpha * 0.45f))
+                    .background(BluePrimary)
             )
         }
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(ButtonSize)
+                .shadow(if (isRecording) 10.dp else 6.dp, CircleShape)
                 .clip(CircleShape)
-                .background(if (isRecording) GoldAccent else Color.Transparent)
+                .background(BluePrimary)
                 .pointerInput(Unit) {
                     detectTapGestures(onPress = {
                         onStartRecording()
@@ -67,8 +79,8 @@ fun MicButton(
             Icon(
                 Icons.Default.Mic,
                 contentDescription = "Hold to record",
-                tint = if (isRecording) Color.White else TextSecondary,
-                modifier = Modifier.size(20.dp)
+                tint = Color.White,
+                modifier = Modifier.size(30.dp)
             )
         }
     }
