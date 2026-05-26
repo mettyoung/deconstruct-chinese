@@ -98,6 +98,13 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
         }
     }
 
+    fun onSharedText(text: String) {
+        // Set the source side to match the shared text's script so it translates correctly.
+        val hasHan = text.any { it.code in 0x4E00..0x9FFF }
+        _toEnglish.value = hasHan
+        onInputTextChange(text)
+    }
+
     fun onInputTextChange(newText: String) {
         _inputText.value = newText
         if (_translationState.value is TranslationState.Success) {

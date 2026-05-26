@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.mettyoung.deconstructchinese.IncomingText
 import com.mettyoung.deconstructchinese.ui.components.ApiKeyDialog
 import com.mettyoung.deconstructchinese.ui.rememberImagePickerLauncher
 import com.mettyoung.deconstructchinese.ui.theme.Background
@@ -60,6 +61,9 @@ fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         viewModel.snackbarMessage.collect { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(Unit) {
+        IncomingText.texts.collect { viewModel.onSharedText(it) }
     }
 
     val imagePicker = rememberImagePickerLauncher { viewModel.processImage(it) }
