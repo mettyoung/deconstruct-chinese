@@ -2,7 +2,6 @@ package com.mettyoung.deconstructchinese.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.ContentCopy
@@ -99,7 +98,7 @@ fun TranslationResultCard(
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = Surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
@@ -111,13 +110,7 @@ fun TranslationResultCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        scriptLabel,
-                        color = BluePrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.sp
-                    )
+                    SectionLabel(scriptLabel, color = BluePrimary)
                     Row {
                         IconButton(
                             onClick  = { clipboardManager.setText(AnnotatedString(displayChineseText)) },
@@ -155,13 +148,7 @@ fun TranslationResultCard(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
-                            "ENGLISH",
-                            color = TextSecondary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.sp
-                        )
+                        SectionLabel("ENGLISH")
                         Text(
                             text       = result.translatedText,
                             fontSize   = 20.sp,
@@ -178,7 +165,7 @@ fun TranslationResultCard(
             Spacer(Modifier.height(12.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.medium,
                 colors = CardDefaults.cardColors(containerColor = GrammarBg),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -187,13 +174,13 @@ fun TranslationResultCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
-                        Icons.Default.Translate, 
-                        contentDescription = null, 
-                        tint = BluePrimary, 
+                        Icons.Default.Translate,
+                        contentDescription = null,
+                        tint = BluePrimary,
                         modifier = Modifier.size(20.dp).padding(top = 2.dp)
                     )
                     Column {
-                        Text("GRAMMAR NOTE", color = BluePrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        SectionLabel("GRAMMAR NOTE", color = BluePrimary)
                         Spacer(Modifier.height(4.dp))
                         Text(result.grammarNote, color = TextPrimary.copy(alpha = 0.8f), fontSize = 14.sp, lineHeight = 20.sp)
                     }
@@ -202,13 +189,9 @@ fun TranslationResultCard(
         }
 
         Spacer(Modifier.height(24.dp))
-        
-        Text(
+
+        SectionLabel(
             "VOCABULARY BREAKDOWN",
-            color      = TextSecondary,
-            fontSize   = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
             modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
         )
 

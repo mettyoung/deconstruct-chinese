@@ -1,0 +1,173 @@
+package com.mettyoung.deconstructchinese.ui.screens
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.mettyoung.deconstructchinese.ui.components.ApiKeyDialog
+import com.mettyoung.deconstructchinese.ui.rememberImagePickerLauncher
+import com.mettyoung.deconstructchinese.ui.theme.Background
+import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
+import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
+import com.mettyoung.deconstructchinese.ui.theme.Surface
+import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
+import com.mettyoung.deconstructchinese.viewmodel.TranslatorViewModel
+
+@Composable
+fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
+    val viewModel: TranslatorViewModel = key(apiKey) {
+        viewModel(factory = viewModelFactory { initializer { TranslatorViewModel(apiKey) } })
+    }
+
+    val inputText by viewModel.inputText.collectAsStateWithLifecycle()
+    val translationState by viewModel.translationState.collectAsStateWithLifecycle()
+    val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
+    val savedVocab by viewModel.savedVocabulary.collectAsStateWithLifecycle()
+    val toEnglish by viewModel.toEnglish.collectAsStateWithLifecycle()
+    val useSimplified by viewModel.useSimplified.collectAsStateWithLifecycle()
+    val isRecording by viewModel.isRecording.collectAsStateWithLifecycle()
+    val isProcessingImage by viewModel.isProcessingImage.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        viewModel.snackbarMessage.collect { snackbarHostState.showSnackbar(it) }
+    }
+
+    val imagePicker = rememberImagePickerLauncher { viewModel.processImage(it) }
+
+    var showApiModal by remember { mutableStateOf(false) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+
+    if (showApiModal) {
+        ApiKeyDialog(
+            currentApiKey = apiKey,
+            useSimplified = useSimplified,
+            onDismiss = { showApiModal = false },
+            onApiKeySubmit = onApiKeySubmit,
+            onUseSimplifiedChange = { viewModel.setUseSimplified(it) }
+        )
+    }
+
+    Scaffold(
+        containerColor = Background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            BottomNav(
+                selectedTab = selectedTab,
+                savedCount = savedVocab.size,
+                onSelectTab = { selectedTab = it }
+            )
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            when (selectedTab) {
+                0 -> TranslateScreen(
+                    inputText = inputText,
+                    translationState = translationState,
+                    toEnglish = toEnglish,
+                    isPlaying = isPlaying,
+                    isRecording = isRecording,
+                    isProcessingImage = isProcessingImage,
+                    savedVocab = savedVocab,
+                    apiKey = apiKey,
+                    useSimplified = useSimplified,
+                    imagePicker = imagePicker,
+                    onInputChange = viewModel::onInputTextChange,
+                    onClear = viewModel::clearAll,
+                    onTranslate = { if (apiKey.isBlank()) showApiModal = true else viewModel.translate() },
+                    onSwapDirection = viewModel::swapDirection,
+                    onSpeak = viewModel::speakTranslation,
+                    onStop = viewModel::stopAudio,
+                    onSpeakWord = viewModel::speakWord,
+                    onSaveWord = viewModel::saveWord,
+                    onRemoveWord = viewModel::removeWord,
+                    onOpenSettings = { showApiModal = true },
+                    onStartRecording = viewModel::startRecording,
+                    onStopRecording = viewModel::stopRecording
+                )
+                1 -> VocabularyScreen(
+                    vocabulary = savedVocab,
+                    useSimplified = useSimplified,
+                    onDismiss = { selectedTab = 0 },
+                    onRemove = viewModel::removeWord,
+                    onSpeak = viewModel::speakWord
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomNav(selectedTab: Int, savedCount: Int, onSelectTab: (Int) -> Unit) {
+    NavigationBar(
+        containerColor = Surface,
+        tonalElevation = 8.dp,
+        modifier = Modifier.shadow(16.dp)
+    ) {
+        NavigationBarItem(
+            selected = selectedTab == 0,
+            onClick = { onSelectTab(0) },
+            icon = { Icon(Icons.Default.Translate, contentDescription = null) },
+            label = { Text("Translate") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = BluePrimary,
+                selectedTextColor = BluePrimary,
+                indicatorColor = BluePrimary.copy(alpha = 0.1f),
+                unselectedIconColor = TextSecondary,
+                unselectedTextColor = TextSecondary
+            )
+        )
+        NavigationBarItem(
+            selected = selectedTab == 1,
+            onClick = { onSelectTab(1) },
+            icon = {
+                BadgedBox(
+                    badge = {
+                        if (savedCount > 0) {
+                            Badge(containerColor = GoldAccent, contentColor = Color.White) {
+                                Text("$savedCount", fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp))
+                            }
+                        }
+                    }
+                ) { Icon(Icons.Default.Bookmark, contentDescription = null) }
+            },
+            label = { Text("Saved") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = GoldAccent,
+                selectedTextColor = GoldAccent,
+                indicatorColor = GoldAccent.copy(alpha = 0.1f),
+                unselectedIconColor = TextSecondary,
+                unselectedTextColor = TextSecondary
+            )
+        )
+    }
+}

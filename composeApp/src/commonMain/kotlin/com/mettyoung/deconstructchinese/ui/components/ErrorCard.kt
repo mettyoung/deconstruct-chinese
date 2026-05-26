@@ -1,5 +1,6 @@
 package com.mettyoung.deconstructchinese.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,12 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,9 +29,10 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 fun ErrorCard(message: String) {
     Card(
         colors   = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)), // Rose 50
-        shape    = RoundedCornerShape(16.dp),
+        shape    = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, Color(0xFFFECACA)) // Red 200
     ) {
         Row(
             Modifier.padding(16.dp),
