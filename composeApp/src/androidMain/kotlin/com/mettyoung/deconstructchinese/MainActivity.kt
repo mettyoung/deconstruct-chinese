@@ -27,14 +27,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleSharedText(intent: Intent) {
-        val text = when (intent.action) {
-            Intent.ACTION_PROCESS_TEXT ->
-                intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
-            Intent.ACTION_SEND ->
-                if (intent.type == "text/plain") intent.getStringExtra(Intent.EXTRA_TEXT) else null
-            else -> null
+        if (intent.action == Intent.ACTION_PROCESS_TEXT) {
+            intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
+                ?.let { IncomingText.submit(it) }
         }
-        text?.let { IncomingText.submit(it) }
     }
 }
 
