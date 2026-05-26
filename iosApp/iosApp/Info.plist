@@ -12,16 +12,5 @@
 	<string>Used to photograph text for OCR and translation</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Used to select images containing text for translation</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.mettyoung.deconstructchinese</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>deconstructchinese</string>
-			</array>
-		</dict>
-	</array>
 </dict>
 </plist>
