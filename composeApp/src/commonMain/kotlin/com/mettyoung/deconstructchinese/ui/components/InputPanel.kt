@@ -102,62 +102,64 @@ fun InputPanel(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    if (inputText.isEmpty()) {
-                        TextButton(
-                            onClick = {
-                                val pasted = clipboardManager.getText()?.text.orEmpty()
-                                if (pasted.isNotEmpty()) onInputChange(pasted)
-                            },
-                            colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
-                        ) {
-                            Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Paste", fontSize = 13.sp)
-                        }
+                if (inputText.isEmpty()) {
+                    TextButton(
+                        onClick = {
+                            val pasted = clipboardManager.getText()?.text.orEmpty()
+                            if (pasted.isNotEmpty()) onInputChange(pasted)
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
+                    ) {
+                        Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Paste", fontSize = 13.sp)
                     }
+
+                    Spacer(Modifier.weight(1f))
 
                     if (!isWebPlatform) {
-                        MicButton(
-                            isRecording = isRecording,
-                            onStartRecording = onStartRecording,
-                            onStopRecording = onStopRecording
-                        )
-                        Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (isProcessingImage) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = BluePrimary, strokeWidth = 2.dp)
-                            } else {
-                                IconButton(onClick = onScanImage, enabled = !isRecording) {
-                                    Icon(Icons.Default.CameraAlt, contentDescription = "Scan image", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                            Box(
+                                modifier = Modifier.size(40.dp).clip(CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isProcessingImage) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = BluePrimary, strokeWidth = 2.dp)
+                                } else {
+                                    IconButton(onClick = onScanImage, enabled = !isRecording) {
+                                        Icon(Icons.Default.CameraAlt, contentDescription = "Scan image", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                                    }
                                 }
                             }
+                            MicButton(
+                                isRecording = isRecording,
+                                onStartRecording = onStartRecording,
+                                onStopRecording = onStopRecording
+                            )
                         }
                     }
-                }
-
-                if (translationState is TranslationState.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp).padding(end = 8.dp),
-                        color = BluePrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else if (inputText.isNotEmpty() && translationState !is TranslationState.Success) {
-                    Button(
-                        onClick = onTranslate,
-                        shape = MaterialTheme.shapes.small,
-                        colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(if (apiKey.isBlank()) "Setup API" else "Translate", fontSize = 14.sp)
+                } else {
+                    Spacer(Modifier.weight(1f))
+                    if (translationState is TranslationState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp).padding(end = 8.dp),
+                            color = BluePrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else if (translationState !is TranslationState.Success) {
+                        Button(
+                            onClick = onTranslate,
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(if (apiKey.isBlank()) "Setup API" else "Translate", fontSize = 14.sp)
+                        }
                     }
                 }
             }
