@@ -86,6 +86,9 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
                         _recordingPhase.value = RecordingPhase.Idle
                         onInputTextChange(result.text)
                     }
+                    is SpeechResult.Cancelled -> {
+                        _recordingPhase.value = RecordingPhase.Idle
+                    }
                     is SpeechResult.Error -> {
                         _recordingPhase.value = RecordingPhase.Idle
                         _snackbarMessage.tryEmit(result.message)

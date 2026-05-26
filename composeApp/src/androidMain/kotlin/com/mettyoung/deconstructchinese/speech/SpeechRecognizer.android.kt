@@ -43,13 +43,16 @@ actual class SpeechRecognizer actual constructor() {
                 }
 
                 override fun onError(error: Int) {
-                    val msg = when (error) {
-                        AndroidSpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission denied"
-                        AndroidSpeechRecognizer.ERROR_NO_MATCH -> "No speech detected"
-                        AndroidSpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout"
-                        else -> "Recognition error ($error)"
+                    when (error) {
+                        AndroidSpeechRecognizer.ERROR_CLIENT,
+                        AndroidSpeechRecognizer.ERROR_NO_MATCH,
+                        AndroidSpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                            _results.tryEmit(SpeechResult.Cancelled)
+                        AndroidSpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
+                            _results.tryEmit(SpeechResult.Error("Microphone permission denied"))
+                        else ->
+                            _results.tryEmit(SpeechResult.Error("Recognition error ($error)"))
                     }
-                    _results.tryEmit(SpeechResult.Error(msg))
                 }
             })
         }
