@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.isWebPlatform
@@ -72,9 +73,9 @@ fun InputPanel(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, Divider)
+        border = BorderStroke(1.dp, Divider.copy(alpha = 0.5f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Box {
                 TextField(
                     value = inputText,
@@ -89,13 +90,13 @@ fun InputPanel(
                         Crossfade(targetState = hint, label = "placeholder") { text ->
                             Text(
                                 text,
-                                color = if (recording) BluePrimary else TextSecondary.copy(alpha = 0.4f),
-                                fontSize = 20.sp
+                                color = if (recording) BluePrimary else TextSecondary.copy(alpha = 0.3f),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp)
                             )
                         }
                     },
-                    textStyle = TextStyle(fontSize = 20.sp, color = TextPrimary),
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, color = TextPrimary),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
@@ -105,18 +106,19 @@ fun InputPanel(
                     )
                 )
                 if (inputText.isNotEmpty()) {
-                    IconButton(onClick = onClear, modifier = Modifier.align(Alignment.TopEnd)) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                    IconButton(
+                        onClick = onClear, 
+                        modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Clear", tint = TextSecondary.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Keep this branch (and the mic at a stable call site) while recording,
-                // so streaming partials filling the field don't unmount the button mid-hold.
                 if (inputText.isEmpty() || recording) {
                     if (inputText.isEmpty()) {
                         TextButton(
@@ -124,11 +126,12 @@ fun InputPanel(
                                 val pasted = clipboardManager.getText()?.text.orEmpty()
                                 if (pasted.isNotEmpty()) onInputChange(pasted)
                             },
-                            colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary)
+                            colors = ButtonDefaults.textButtonColors(contentColor = BluePrimary),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                         ) {
-                            Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Paste", fontSize = 13.sp)
+                            Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Paste", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -139,16 +142,15 @@ fun InputPanel(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier.size(40.dp).clip(CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (isProcessingImage) {
-                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = BluePrimary, strokeWidth = 2.dp)
-                                } else {
-                                    IconButton(onClick = onScanImage, enabled = !recording) {
-                                        Icon(Icons.Default.CameraAlt, contentDescription = "Scan image", tint = TextSecondary, modifier = Modifier.size(20.dp))
-                                    }
+                            if (isProcessingImage) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(4.dp), color = BluePrimary, strokeWidth = 2.dp)
+                            } else {
+                                IconButton(
+                                    onClick = onScanImage, 
+                                    enabled = !recording,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = "Scan image", tint = TextSecondary, modifier = Modifier.size(20.dp))
                                 }
                             }
                             MicButton(
@@ -162,18 +164,19 @@ fun InputPanel(
                     Spacer(Modifier.weight(1f))
                     if (translationState is TranslationState.Loading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp).padding(end = 8.dp),
+                            modifier = Modifier.size(24.dp).padding(4.dp),
                             color = BluePrimary,
                             strokeWidth = 2.dp
                         )
                     } else if (translationState !is TranslationState.Success) {
                         Button(
                             onClick = onTranslate,
-                            shape = MaterialTheme.shapes.small,
+                            shape = CircleShape,
                             colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                         ) {
-                            Text(if (apiKey.isBlank()) "Setup API" else "Translate", fontSize = 14.sp)
+                            Text(if (apiKey.isBlank()) "Setup API" else "Translate", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

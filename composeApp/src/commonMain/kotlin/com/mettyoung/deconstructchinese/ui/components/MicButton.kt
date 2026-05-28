@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
 
-private val ButtonSize = 64.dp
-private val ContainerSize = 96.dp
+private val ButtonSize = 48.dp
+private val ContainerSize = 64.dp
 
 @Composable
 fun MicButton(
@@ -44,13 +44,13 @@ fun MicButton(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(if (listening) 800 else 1300, easing = LinearEasing),
+            animation = tween(if (listening) 800 else 1200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "micRipple"
     )
-    val maxScale = if (listening) 0.5f else 0.4f
-    val maxAlpha = if (listening) 0.5f else 0.3f
+    val maxScale = if (listening) 0.6f else 0.4f
+    val maxAlpha = if (listening) 0.4f else 0.2f
 
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(ContainerSize)) {
         if (active) {
@@ -70,9 +70,9 @@ fun MicButton(
         Box(
             modifier = Modifier
                 .size(ButtonSize)
-                .shadow(if (active) 10.dp else 6.dp, CircleShape)
+                .shadow(if (active) 8.dp else 2.dp, CircleShape)
                 .clip(CircleShape)
-                .background(BluePrimary)
+                .background(if (active) BluePrimary else BluePrimary.copy(alpha = 0.9f))
                 .pointerInput(Unit) {
                     detectTapGestures(onPress = {
                         onStartRecording()
@@ -89,7 +89,7 @@ fun MicButton(
                 Icons.Default.Mic,
                 contentDescription = "Hold to record",
                 tint = Color.White,
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
     }

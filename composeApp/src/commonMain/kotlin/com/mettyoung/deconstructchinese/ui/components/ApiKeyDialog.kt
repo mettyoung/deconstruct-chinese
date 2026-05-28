@@ -4,9 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -37,7 +40,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
-import com.mettyoung.deconstructchinese.ui.theme.Card
 import com.mettyoung.deconstructchinese.ui.theme.Divider
 import com.mettyoung.deconstructchinese.ui.theme.Surface
 import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
@@ -58,62 +60,92 @@ fun ApiKeyDialog(
         onDismissRequest = onDismiss,
         containerColor = Surface,
         shape = MaterialTheme.shapes.large,
-        title = { Text("Settings", style = MaterialTheme.typography.titleLarge) },
+        title = {
+            Text(
+                "Settings", 
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
+                )
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(Card)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text("Chinese Script", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(
-                            if (useSimplified) "Simplified (简体)" else "Traditional (繁體)",
-                            color = TextSecondary,
-                            fontSize = 12.sp
+            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                // Script Preference
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionLabel("CHINESE SCRIPT")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(BluePrimary.copy(alpha = 0.04f))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                if (useSimplified) "Simplified (简体)" else "Traditional (繁體)",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp
+                            )
+                            Text(
+                                if (useSimplified) "Preferred for Mainland China" else "Preferred for Taiwan/HK",
+                                color = TextSecondary.copy(alpha = 0.7f),
+                                fontSize = 12.sp
+                            )
+                        }
+                        Switch(
+                            checked = useSimplified,
+                            onCheckedChange = onUseSimplifiedChange,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = BluePrimary,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = Divider
+                            ),
+                            modifier = Modifier.size(44.dp, 24.dp)
                         )
                     }
-                    Switch(
-                        checked = useSimplified,
-                        onCheckedChange = onUseSimplifiedChange,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = BluePrimary
-                        )
-                    )
                 }
 
+                // API Key
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel("API KEY", modifier = Modifier.padding(start = 4.dp))
+                    SectionLabel("OPENAI API KEY")
                     OutlinedTextField(
                         value = keyInput,
                         onValueChange = { keyInput = it },
-                        placeholder = { Text("sk-...", color = TextSecondary.copy(alpha = 0.5f)) },
+                        placeholder = { Text("sk-...", color = TextSecondary.copy(alpha = 0.3f)) },
                         visualTransformation = if (showKey) VisualTransformation.None
                         else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { showKey = !showKey }) {
                                 Icon(
                                     if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showKey) "Hide key" else "Show key",
-                                    tint = TextSecondary
+                                    contentDescription = if (showKey) "Toggle visibility" else "Toggle visibility",
+                                    tint = TextSecondary.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.small,
+                        shape = MaterialTheme.shapes.medium,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = BluePrimary,
-                            unfocusedBorderColor = Divider,
+                            unfocusedBorderColor = Divider.copy(alpha = 0.5f),
                             focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
+                            unfocusedTextColor = TextPrimary,
+                            cursorColor = BluePrimary
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
+                    )
+                    Text(
+                        "Your key is stored locally on your device.",
+                        color = TextSecondary.copy(alpha = 0.5f),
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(start = 4.dp)
                     )
                 }
             }
@@ -121,13 +153,21 @@ fun ApiKeyDialog(
         confirmButton = {
             Button(
                 onClick = { onApiKeySubmit(keyInput.trim()); onDismiss() },
-                shape = MaterialTheme.shapes.small,
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
-                modifier = Modifier.height(48.dp).fillMaxWidth(0.4f)
-            ) { Text("Save") }
+                modifier = Modifier.height(44.dp).padding(horizontal = 8.dp),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+            ) {
+                Text("Save Changes", fontWeight = FontWeight.Bold)
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) }
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.height(44.dp)
+            ) {
+                Text("Cancel", color = TextSecondary, fontWeight = FontWeight.Medium)
+            }
         }
     )
 }

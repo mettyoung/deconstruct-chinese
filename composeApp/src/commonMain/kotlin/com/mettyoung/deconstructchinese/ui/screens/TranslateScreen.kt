@@ -6,25 +6,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
@@ -43,10 +34,7 @@ import com.mettyoung.deconstructchinese.ui.components.ImageSourceDialog
 import com.mettyoung.deconstructchinese.ui.components.InputPanel
 import com.mettyoung.deconstructchinese.ui.components.LanguageDirectionBar
 import com.mettyoung.deconstructchinese.ui.components.TranslationResultCard
-import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
-import com.mettyoung.deconstructchinese.ui.theme.Card
-import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
-import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
+import com.mettyoung.deconstructchinese.ui.theme.*
 
 @Composable
 fun TranslateScreen(
@@ -87,16 +75,16 @@ fun TranslateScreen(
     Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
         TranslateHeader(onOpenSettings = onOpenSettings)
 
-        LanguageDirectionBar(
-            toEnglish = toEnglish,
-            useSimplified = useSimplified,
-            onSwap = onSwapDirection,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        Spacer(Modifier.height(16.dp))
-
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            LanguageDirectionBar(
+                toEnglish = toEnglish,
+                useSimplified = useSimplified,
+                onSwap = onSwapDirection,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
             InputPanel(
                 inputText = inputText,
                 toEnglish = toEnglish,
@@ -115,10 +103,10 @@ fun TranslateScreen(
 
             AnimatedVisibility(
                 visible = translationState is TranslationState.Success || translationState is TranslationState.Error,
-                enter = fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { it / 2 }),
+                enter = fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { it / 3 }),
                 exit = fadeOut()
             ) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
+                Column(modifier = Modifier.padding(top = 20.dp)) {
                     when (val state = translationState) {
                         is TranslationState.Success -> TranslationResultCard(
                             result = state.result,
@@ -140,7 +128,7 @@ fun TranslateScreen(
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
@@ -148,19 +136,39 @@ fun TranslateScreen(
 @Composable
 private fun TranslateHeader(onOpenSettings: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 24.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
-            Text("Deconstruct", style = MaterialTheme.typography.headlineSmall, color = TextPrimary)
-            Text("Chinese", style = MaterialTheme.typography.headlineSmall.copy(color = BluePrimary))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Deconstruct", 
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
+                ), 
+                color = TextPrimary
+            )
+            Text(
+                "Chinese", 
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-0.5).sp
+                ), 
+                color = BluePrimary,
+                modifier = Modifier.padding(start = 4.dp)
+            )
         }
         IconButton(
             onClick = onOpenSettings,
-            modifier = Modifier.clip(CircleShape).background(Card)
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(Surface)
         ) {
-            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = TextSecondary)
+            Icon(
+                Icons.Default.Settings, 
+                contentDescription = "Settings", 
+                tint = TextSecondary.copy(alpha = 0.6f),
+                modifier = Modifier.size(22.dp)
+            )
         }
     }
 }

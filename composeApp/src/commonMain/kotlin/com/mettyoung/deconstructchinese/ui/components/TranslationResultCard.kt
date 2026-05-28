@@ -32,7 +32,8 @@ private fun ChineseWithPinyin(
 ) {
     FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         vocabulary.forEach { item ->
             val simplified: String? = item.simplified?.takeIf { it != item.word }
@@ -53,17 +54,17 @@ private fun ChineseWithPinyin(
                 }
                 Text(
                     text       = pinyinDisplay,
-                    fontSize   = 12.sp,
+                    fontSize   = 13.sp,
                     color      = PinyinColor,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.2.sp
                 )
                 Text(
                     text       = displayWord,
-                    fontSize   = 32.sp,
+                    fontSize   = 36.sp,
                     fontWeight = FontWeight.Bold,
                     color      = TextPrimary,
-                    lineHeight = 40.sp
+                    lineHeight = 44.sp
                 )
             }
         }
@@ -89,7 +90,7 @@ fun TranslationResultCard(
     } else {
         result.chineseText
     }
-    val scriptLabel = if (useSimplified) "Simplified" else "Traditional"
+    val scriptLabel = if (useSimplified) "Simplified Chinese" else "Traditional Chinese"
 
     Column(
         modifier = Modifier
@@ -100,7 +101,8 @@ fun TranslationResultCard(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
             colors = CardDefaults.cardColors(containerColor = Surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Divider.copy(alpha = 0.5f))
         ) {
             Column {
                 Row(
@@ -110,13 +112,13 @@ fun TranslationResultCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SectionLabel(scriptLabel, color = BluePrimary)
+                    SectionLabel(scriptLabel.uppercase(), color = BluePrimary)
                     Row {
                         IconButton(
                             onClick  = { clipboardManager.setText(AnnotatedString(displayChineseText)) },
                             modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = TextSecondary, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = TextSecondary.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                         }
                         IconButton(
                             onClick  = { if (isPlaying) onStop() else onSpeak() },
@@ -125,7 +127,7 @@ fun TranslationResultCard(
                             Icon(
                                 if (isPlaying) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
                                 contentDescription = if (isPlaying) "Stop" else "Listen",
-                                tint     = if (isPlaying) BluePrimary else TextSecondary,
+                                tint     = if (isPlaying) BluePrimary else TextSecondary.copy(alpha = 0.6f),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -141,20 +143,24 @@ fun TranslationResultCard(
                 )
 
                 if (toEnglish) {
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Divider.copy(alpha = 0.5f))
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), 
+                        color = Divider.copy(alpha = 0.3f)
+                    )
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        SectionLabel("ENGLISH")
+                        SectionLabel("ENGLISH TRANSLATION")
                         Text(
                             text       = result.translatedText,
-                            fontSize   = 20.sp,
-                            fontWeight = FontWeight.Medium,
-                            color      = TextPrimary,
-                            lineHeight = 28.sp
+                            style      = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary,
+                                lineHeight = 28.sp
+                            )
                         )
                     }
                 }
@@ -162,12 +168,12 @@ fun TranslationResultCard(
         }
 
         if (result.grammarNote.isNotBlank()) {
-            Spacer(Modifier.height(12.dp))
-            Card(
+            Spacer(Modifier.height(16.dp))
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = GrammarBg),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                color = GrammarBg.copy(alpha = 0.7f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BluePrimary.copy(alpha = 0.1f))
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -180,22 +186,30 @@ fun TranslationResultCard(
                         modifier = Modifier.size(20.dp).padding(top = 2.dp)
                     )
                     Column {
-                        SectionLabel("GRAMMAR NOTE", color = BluePrimary)
+                        SectionLabel("LANGUAGE NOTES", color = BluePrimary)
                         Spacer(Modifier.height(4.dp))
-                        Text(result.grammarNote, color = TextPrimary.copy(alpha = 0.8f), fontSize = 14.sp, lineHeight = 20.sp)
+                        Text(
+                            result.grammarNote, 
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 14.sp,
+                                color = TextPrimary.copy(alpha = 0.85f),
+                                lineHeight = 20.sp
+                            )
+                        )
                     }
                 }
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(28.dp))
 
         SectionLabel(
             "VOCABULARY BREAKDOWN",
-            modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+            modifier = Modifier.padding(start = 4.dp, bottom = 12.dp),
+            color = TextSecondary.copy(alpha = 0.8f)
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             result.vocabulary.forEach { item ->
                 val isSaved = savedVocab.any { it.word == item.word }
                 VocabularyCard(

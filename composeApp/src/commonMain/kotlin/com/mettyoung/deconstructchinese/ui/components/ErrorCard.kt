@@ -28,11 +28,11 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 @Composable
 fun ErrorCard(message: String) {
     Card(
-        colors   = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)), // Rose 50
+        colors   = CardDefaults.cardColors(containerColor = Color(0xFFFFF1F2)), // Rose 50
         shape    = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, Color(0xFFFECACA)) // Red 200
+        border = BorderStroke(1.dp, Color(0xFFFECDD3)) // Rose 200
     ) {
         Row(
             Modifier.padding(16.dp),
@@ -42,18 +42,23 @@ fun ErrorCard(message: String) {
             Icon(
                 Icons.Default.ErrorOutline,
                 contentDescription = null,
-                tint = Color(0xFFEF4444), // Red 500
-                modifier = Modifier.size(24.dp)
+                tint = Color(0xFFE11D48), // Rose 600
+                modifier = Modifier.size(22.dp)
             )
             Column {
                 Text(
-                    "Translation Error", 
-                    color = Color(0xFF991B1B), // Red 800
+                    "Something went wrong", 
+                    color = Color(0xFF9F1239), // Rose 800
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(message, color = TextSecondary, fontSize = 13.sp, lineHeight = 18.sp)
+                Text(
+                    message, 
+                    color = Color(0xFFBE123C).copy(alpha = 0.8f), 
+                    fontSize = 13.sp, 
+                    lineHeight = 18.sp
+                )
             }
         }
     }

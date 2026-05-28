@@ -9,15 +9,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,7 +30,6 @@ fun VocabularyCard(
     onSpeak: () -> Unit,
     onSaveToggle: () -> Unit
 ) {
-    val clipboardManager = LocalClipboardManager.current
     val simplified: String? = item.simplified?.takeIf { it != item.word }
     val mainWord = if (useSimplified) simplified ?: item.word else item.word
     val counterpartWord = if (simplified != null) {
@@ -45,21 +41,19 @@ fun VocabularyCard(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, Divider)
+        border = BorderStroke(1.dp, Divider.copy(alpha = 0.5f))
     ) {
         Row(
-            modifier = Modifier
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Character box
-            Box(modifier = Modifier.size(56.dp)) {
+            Box(modifier = Modifier.size(52.dp)) {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(BluePrimary.copy(alpha = 0.08f)),
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(BluePrimary.copy(alpha = 0.06f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -77,14 +71,14 @@ fun VocabularyCard(
                             .offset(x = 4.dp, y = (-4).dp),
                         shape = CircleShape,
                         color = GoldAccent,
-                        tonalElevation = 4.dp
+                        border = BorderStroke(2.dp, Surface)
                     ) {
                         Text(
                             text      = "${item.frequency}",
-                            fontSize  = 10.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize  = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
                             color     = Color.White,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                         )
                     }
                 }
@@ -95,7 +89,7 @@ fun VocabularyCard(
             // Pinyin + meaning
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.Center
             ) {
                 val pinyinDisplay = if (counterpartWord != null) {
                     "${item.phonetic} ($counterpartWord)"
@@ -105,33 +99,44 @@ fun VocabularyCard(
                 Text(
                     pinyinDisplay, 
                     color = PinyinColor, 
-                    fontSize = 14.sp, 
+                    fontSize = 13.sp, 
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.3.sp
                 )
                 Text(
                     item.meaning, 
                     color = TextSecondary, 
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 14.sp,
+                        lineHeight = 18.sp
+                    )
                 )
             }
 
             // Action buttons
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                IconButton(onClick = onSpeak, modifier = Modifier.size(36.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(
+                    onClick = onSpeak, 
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         Icons.AutoMirrored.Filled.VolumeUp, 
                         contentDescription = "Pronounce", 
-                        tint = TextSecondary.copy(alpha = 0.7f), 
-                        modifier = Modifier.size(20.dp)
+                        tint = TextSecondary.copy(alpha = 0.5f), 
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-                IconButton(onClick = onSaveToggle, modifier = Modifier.size(36.dp)) {
+                IconButton(
+                    onClick = onSaveToggle, 
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                         contentDescription = if (isSaved) "Remove" else "Save",
-                        tint     = if (isSaved) GoldAccent else TextSecondary.copy(alpha = 0.7f),
+                        tint     = if (isSaved) GoldAccent else TextSecondary.copy(alpha = 0.5f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
