@@ -70,7 +70,7 @@ abstract class OpenAiCompatibleTranslator(
             json(jsonConfig)
         }
         install(Logging) {
-            level = LogLevel.NONE
+            level = LogLevel.INFO
         }
     }
 
@@ -79,6 +79,7 @@ abstract class OpenAiCompatibleTranslator(
         toEnglish: Boolean,
         useSimplified: Boolean
     ): TranslationResult {
+        println("[TranslationService] provider=$providerLabel model=$model url=$baseUrl")
         val chineseVariant = if (useSimplified) SIMPLIFIED else TRADITIONAL
         val systemPrompt = if (toEnglish) SYSTEM_TO_EN
         else "You are a professional translator and language teacher specializing in $chineseVariant. " +
