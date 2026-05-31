@@ -19,7 +19,14 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter android:label="@string/process_text_label">
+        </activity>
+        <activity
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:name=".TranslatePopupActivity"
+            android:theme="@style/Theme.DeconstructChinese.Popup">
+            <intent-filter android:label="@string/process_text_label" android:priority="100">
                 <action android:name="android.intent.action.PROCESS_TEXT" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
