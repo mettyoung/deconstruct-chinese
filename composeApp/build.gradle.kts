@@ -2,20 +2,21 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
-// Qwen API key for local dev: read from local.properties (qwen.apiKey, gitignored)
-// or the QWEN_API_KEY env var. Empty when unset — users enter it via the in-app dialog.
-val qwenApiKey: String = run {
+// Doubao (Volcengine Ark) API key for local dev: read from local.properties
+// (doubao.apiKey, gitignored) or the DOUBAO_API_KEY env var. Empty when unset —
+// users enter it via the in-app dialog.
+val doubaoApiKey: String = run {
     val props = Properties()
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { props.load(it) }
-    props.getProperty("qwen.apiKey") ?: System.getenv("QWEN_API_KEY") ?: ""
+    props.getProperty("doubao.apiKey") ?: System.getenv("DOUBAO_API_KEY") ?: ""
 }
 
 // iOS has no BuildConfig; generate the key into an iosMain source instead.
 // Web is intentionally excluded — a key in the JS bundle is readable by anyone.
 val generateIosSecrets by tasks.registering {
     val outDir = layout.buildDirectory.dir("generated/iosSecrets/kotlin")
-    val key = qwenApiKey
-    inputs.property("qwenApiKey", key)
+    val key = doubaoApiKey
+    inputs.property("doubaoApiKey", key)
     outputs.dir(outDir)
     doLast {
         val pkgDir = outDir.get().asFile.resolve("com/mettyoung/deconstructchinese/config")
@@ -123,7 +124,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "QWEN_API_KEY", "\"$qwenApiKey\"")
+        buildConfigField("String", "DOUBAO_API_KEY", "\"$doubaoApiKey\"")
     }
     buildFeatures {
         buildConfig = true

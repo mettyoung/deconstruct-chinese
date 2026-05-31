@@ -34,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mettyoung.deconstructchinese.IncomingText
+import com.mettyoung.deconstructchinese.network.DoubaoService
 import com.mettyoung.deconstructchinese.ui.components.ApiKeyDialog
 import com.mettyoung.deconstructchinese.ui.rememberImagePickerLauncher
 import com.mettyoung.deconstructchinese.ui.theme.Background
@@ -46,7 +47,9 @@ import com.mettyoung.deconstructchinese.viewmodel.TranslatorViewModel
 @Composable
 fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
     val viewModel: TranslatorViewModel = key(apiKey) {
-        viewModel(factory = viewModelFactory { initializer { TranslatorViewModel(apiKey) } })
+        viewModel(factory = viewModelFactory {
+            initializer { TranslatorViewModel(DoubaoService(apiKey)) }
+        })
     }
 
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()

@@ -7,7 +7,7 @@ import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
-import com.mettyoung.deconstructchinese.network.QwenService
+import com.mettyoung.deconstructchinese.network.TranslationService
 import com.mettyoung.deconstructchinese.ocr.OcrLanguage
 import com.mettyoung.deconstructchinese.ocr.OcrReader
 import com.mettyoung.deconstructchinese.ocr.OcrResult
@@ -25,9 +25,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class TranslatorViewModel(apiKey: String) : ViewModel() {
+class TranslatorViewModel(
+    private val translationService: TranslationService
+) : ViewModel() {
 
-    private val qwenService = QwenService(apiKey)
     private val audioPlayer = AudioPlayer()
     private val speechRecognizer = SpeechRecognizer()
     private val ocrReader = OcrReader()
@@ -135,7 +136,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
             _translationState.value = TranslationState.Loading
 
             try {
-                val result = qwenService.translate(text, _toEnglish.value, _useSimplified.value)
+                val result = translationService.translate(text, _toEnglish.value, _useSimplified.value)
                 result.vocabulary.forEach { item ->
                     if (VocabularyStore.isSaved(item.word)) {
                         VocabularyStore.bumpFrequency(item)

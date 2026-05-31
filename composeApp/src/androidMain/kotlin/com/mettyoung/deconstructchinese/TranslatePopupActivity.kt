@@ -54,6 +54,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mettyoung.deconstructchinese.audio.AppContext
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
+import com.mettyoung.deconstructchinese.network.DoubaoService
 import com.mettyoung.deconstructchinese.storage.AppSettings
 import com.mettyoung.deconstructchinese.ui.components.ErrorCard
 import com.mettyoung.deconstructchinese.ui.components.TranslationResultCard
@@ -111,8 +112,10 @@ private fun PopupContent(
     val viewModel: TranslatorPopupViewModel = viewModel(
         factory = viewModelFactory {
             initializer {
+                val apiKey = AppSettings.apiKey
                 TranslatorPopupViewModel(
-                    apiKey = AppSettings.apiKey,
+                    translationService = DoubaoService(apiKey),
+                    apiKey = apiKey,
                     useSimplified = AppSettings.useSimplified
                 )
             }
