@@ -37,7 +37,12 @@ class TranslatorPopupViewModel(
         viewModelScope.launch {
             _translationState.value = TranslationState.Loading
             try {
-                val result = translationService.translate(trimmed, toEnglish = true, useSimplified = useSimplified)
+                val result = translationService.translate(
+                    text = trimmed,
+                    toEnglish = true,
+                    useSimplified = useSimplified,
+                    includeGrammarNote = false
+                )
                 _translationState.value = TranslationState.Success(result)
             } catch (e: Exception) {
                 _translationState.value = TranslationState.Error(

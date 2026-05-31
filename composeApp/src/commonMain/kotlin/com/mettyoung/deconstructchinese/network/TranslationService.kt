@@ -6,6 +6,7 @@ interface TranslationService {
     suspend fun translate(
         text: String,
         toEnglish: Boolean = false,
-        useSimplified: Boolean = true
+        useSimplified: Boolean = true,
+        includeGrammarNote: Boolean = true
     ): TranslationResult
 }

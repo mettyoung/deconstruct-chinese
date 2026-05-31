@@ -26,8 +26,12 @@ import kotlinx.serialization.json.Json
 private data class ChatRequest(
     val model: String,
     val messages: List<ChatMessage>,
-    val temperature: Double = 0.0
+    val temperature: Double = 0.0,
+    val response_format: ResponseFormat? = null
 )
+
+@Serializable
+private data class ResponseFormat(val type: String)
 
 @Serializable
 private data class ChatMessage(
@@ -51,57 +55,40 @@ abstract class OpenAiCompatibleTranslator(
     private val apiKey: String,
     private val baseUrl: String,
     private val model: String,
-    private val providerLabel: String
+    private val providerLabel: String,
+    private val useJsonMode: Boolean = true
 ) : TranslationService {
-
-    private val jsonConfig = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-        encodeDefaults = true
-    }
-
-    private val client = HttpClient {
-        install(HttpTimeout) {
-            requestTimeoutMillis = 60_000
-            connectTimeoutMillis = 15_000
-            socketTimeoutMillis = 60_000
-        }
-        install(ContentNegotiation) {
-            json(jsonConfig)
-        }
-        install(Logging) {
-            level = LogLevel.INFO
-        }
-    }
 
     final override suspend fun translate(
         text: String,
         toEnglish: Boolean,
-        useSimplified: Boolean
+        useSimplified: Boolean,
+        includeGrammarNote: Boolean
     ): TranslationResult {
-        println("[TranslationService] provider=$providerLabel model=$model url=$baseUrl")
-        val chineseVariant = if (useSimplified) SIMPLIFIED else TRADITIONAL
-        val systemPrompt = if (toEnglish) SYSTEM_TO_EN
-        else "You are a professional translator and language teacher specializing in $chineseVariant. " +
-                "Translate English into $chineseVariant and provide a vocabulary breakdown. Respond ONLY with valid JSON."
-        val userPrompt = if (toEnglish) buildPromptToEnglish(text, useSimplified)
-        else buildPromptToChinese(text, useSimplified)
+        val t0 = currentTimeMillis()
+        println("[TranslationService] start provider=$providerLabel model=$model url=$baseUrl includeGrammarNote=$includeGrammarNote jsonMode=$useJsonMode chars=${text.length}")
+        val systemPrompt = if (toEnglish) SYSTEM_TO_EN else systemToChinese(useSimplified)
+        val userPrompt = if (toEnglish) buildPromptToEnglish(text, useSimplified, includeGrammarNote)
+        else buildPromptToChinese(text, useSimplified, includeGrammarNote)
 
         val requestBody = ChatRequest(
             model = model,
             messages = listOf(
                 ChatMessage("system", systemPrompt),
                 ChatMessage("user", userPrompt)
-            )
+            ),
+            response_format = if (useJsonMode) ResponseFormat("json_object") else null
         )
 
         logCurl(requestBody)
 
-        val response: HttpResponse = client.post(baseUrl) {
+        val tSend = currentTimeMillis()
+        val response: HttpResponse = sharedClient.post(baseUrl) {
             header("Authorization", "Bearer $apiKey")
             contentType(ContentType.Application.Json)
             setBody(requestBody)
         }
+        val tHeaders = currentTimeMillis()
 
         if (!response.status.isSuccess()) {
             val errorBody = response.bodyAsText()
@@ -109,11 +96,17 @@ abstract class OpenAiCompatibleTranslator(
         }
 
         val body: ChatResponse = response.body()
+        val tBody = currentTimeMillis()
         val rawText = body.choices?.firstOrNull()?.message?.content
             ?: throw Exception("Empty response from $providerLabel")
 
-        return parseResponse(rawText, text, toEnglish, useSimplified)
+        val result = parseResponse(rawText, text, toEnglish, useSimplified)
+        val tDone = currentTimeMillis()
+        println("[TranslationService] done provider=$providerLabel total=${tDone - t0}ms send=${tSend - t0}ms headers=${tHeaders - tSend}ms body=${tBody - tHeaders}ms parse=${tDone - tBody}ms outChars=${rawText.length}")
+        return result
     }
+
+    private fun currentTimeMillis(): Long = io.ktor.util.date.getTimeMillis()
 
     private fun logCurl(requestBody: ChatRequest) {
         val bodyString = jsonConfig.encodeToString(requestBody)
@@ -184,12 +177,52 @@ abstract class OpenAiCompatibleTranslator(
                 "Translate Chinese text into English, and provide a detailed Chinese vocabulary breakdown. " +
                 "Respond ONLY with valid JSON."
 
-        private fun buildPromptToChinese(text: String, useSimplified: Boolean): String {
+        private val jsonConfig = Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            encodeDefaults = false
+        }
+
+        // One HttpClient for the whole process: connection pool + TLS session
+        // survive across popup launches and avoid a fresh handshake per call.
+        private val sharedClient: HttpClient by lazy {
+            HttpClient {
+                install(HttpTimeout) {
+                    requestTimeoutMillis = 60_000
+                    connectTimeoutMillis = 15_000
+                    socketTimeoutMillis = 60_000
+                }
+                install(ContentNegotiation) {
+                    json(jsonConfig)
+                }
+                install(Logging) {
+                    level = LogLevel.INFO
+                }
+            }
+        }
+
+        private fun systemToChinese(useSimplified: Boolean): String {
+            val v = if (useSimplified) SIMPLIFIED else TRADITIONAL
+            return "You are a professional translator and language teacher specializing in $v. " +
+                "Translate English into $v and provide a vocabulary breakdown. Respond ONLY with valid JSON."
+        }
+
+        private fun buildPromptToChinese(
+            text: String,
+            useSimplified: Boolean,
+            includeGrammarNote: Boolean
+        ): String {
             val variant = if (useSimplified) SIMPLIFIED else TRADITIONAL
             val scriptRule = if (useSimplified)
                 "translatedText must use Simplified Chinese characters (简体中文), never Traditional."
             else
                 "translatedText must use Traditional Chinese characters (繁體中文), never Simplified."
+            val grammarField = if (includeGrammarNote)
+                "\"grammarNote\": \"one sentence in English describing the Chinese sentence structure and grammar used\",\n  "
+            else ""
+            val grammarRule = if (includeGrammarNote)
+                "- grammarNote must be in English, describing the grammar of the Chinese output.\n"
+            else ""
             return """
 Translate the following English text into $variant.
 
@@ -199,8 +232,7 @@ Return this exact JSON:
 {
   "translatedText": "the full translation in $variant",
   "phoneticText": "pinyin with tone marks for the entire translatedText",
-  "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar used",
-  "vocabulary": [
+  $grammarField"vocabulary": [
     {
       "word": "the Traditional Chinese form of this word",
       "simplified": "the Simplified Chinese form — omit this field only if traditional and simplified are identical",
@@ -213,16 +245,25 @@ Return this exact JSON:
 Rules:
 - $scriptRule
 - phoneticText and every vocabulary phonetic must be pinyin with tone marks.
-- grammarNote must be in English, describing the grammar of the Chinese output.
-- vocabulary must segment translatedText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
+$grammarRule- vocabulary must segment translatedText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in translatedText in order — do not skip any.
 - word is ALWAYS the Traditional Chinese form regardless of the preferred script. simplified is ALWAYS the Simplified Chinese form, omitted only when the characters are identical.
 - Return ONLY the JSON, nothing else.
             """.trimIndent()
         }
 
-        private fun buildPromptToEnglish(text: String, useSimplified: Boolean): String {
+        private fun buildPromptToEnglish(
+            text: String,
+            useSimplified: Boolean,
+            includeGrammarNote: Boolean
+        ): String {
             val variant = if (useSimplified) SIMPLIFIED else TRADITIONAL
+            val grammarField = if (includeGrammarNote)
+                "\"grammarNote\": \"one sentence in English describing the Chinese sentence structure and grammar\",\n  "
+            else ""
+            val grammarRule = if (includeGrammarNote)
+                "- grammarNote must be in English, describing the grammar of the Chinese input.\n"
+            else ""
             return """
 Translate the following Chinese text into English. The input may be Traditional Chinese, Simplified Chinese, or a mix.
 
@@ -233,8 +274,7 @@ Return this exact JSON:
   "traditionalChineseText": "the input normalized to $variant",
   "translatedText": "the full translation in English",
   "phoneticText": "pinyin with tone marks for traditionalChineseText",
-  "grammarNote": "one sentence in English describing the Chinese sentence structure and grammar",
-  "vocabulary": [
+  $grammarField"vocabulary": [
     {
       "word": "the Traditional Chinese form of this word",
       "simplified": "the Simplified Chinese form — omit this field only if traditional and simplified are identical",
@@ -247,8 +287,7 @@ Return this exact JSON:
 Rules:
 - traditionalChineseText must use $variant characters.
 - phoneticText is the pinyin of traditionalChineseText, not the English translation.
-- grammarNote must be in English, describing the grammar of the Chinese input.
-- vocabulary must segment traditionalChineseText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
+$grammarRule- vocabulary must segment traditionalChineseText into natural words, not individual characters. Multi-character words must appear as a single vocabulary entry. Do not split compound words.
 - vocabulary covers every word in traditionalChineseText in order — do not skip any.
 - word is ALWAYS the Traditional Chinese form regardless of the preferred script. simplified is ALWAYS the Simplified Chinese form, omitted only when the characters are identical.
 - Return ONLY the JSON, nothing else.
