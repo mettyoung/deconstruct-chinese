@@ -17,10 +17,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **State**: ViewModel + StateFlow, Multiplatform Settings for persistence
 - **Translation**: Qwen API (qwen-plus model)
 - **Build**: Gradle 8.11 with version catalog (libs.versions.toml)
-- **Audio**: Platform-specific TTS (Android MediaPlayer, iOS AVFoundation expect/actual)
+- **Audio**: Platform-specific TTS (Android `TextToSpeech`, iOS `AVSpeechSynthesizer`; web stub)
 - **Speech Input**: Hold-to-record via `SpeechRecognizer` expect/actual (Android `android.speech`, iOS `SFSpeechRecognizer`)
-- **OCR**: `OcrReader` expect/actual (Android ML Kit, iOS Vision framework)
+- **OCR**: `OcrReader` expect/actual (Android ML Kit text-recognition + chinese, iOS Vision)
 - **Image Picker**: `rememberImagePickerLauncher` expect fun (Android ActivityResultContracts, iOS UIImagePickerController)
+- **API Key**: `Secrets` expect/actual — Android pulls from `BuildConfig.QWEN_API_KEY`, iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""` (user enters in-app dialog)
 
 ### Target Platforms
 
@@ -77,11 +78,14 @@ Open `/iosApp` in Xcode and run via IDE (KMP bridging through framework in `comp
 - `useSimplified`: Traditional vs simplified preference
 - `savedVocabulary`: StateFlow from VocabularyStore
 - `isPlaying`: Audio playback status
-- `isRecording`: Hold-to-record mic state
+- `recordingPhase`: `RecordingPhase` enum (`Idle`/`Armed`/`Listening`) driven by `SpeechRecognizer.results` flow
 - `isProcessingImage`: OCR in-progress state
 - `snackbarMessage`: SharedFlow for speech/OCR errors (non-fatal, shown as snackbar)
-- `startRecording()` / `stopRecording()`: wraps SpeechRecognizer
+- `onSharedText(String)`: entry point from `IncomingText` bus; auto-sets direction by detecting Han chars
+- `startRecording()` / `stopRecording()`: wraps SpeechRecognizer; locale derived from `toEnglish` + `useSimplified`
 - `processImage(ByteArray)`: runs OcrReader, sets inputText on success
+
+`TranslationState` sealed class lives in `model/TranslationResult.kt` alongside `TranslationResult`, `VocabularyItem`, `Language`.
 
 ViewModel created once per app lifecycle; state flows collected in Compose via `collectAsStateWithLifecycle()`.
 
@@ -95,8 +99,13 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 - Exposes `savedVocabulary: StateFlow<List<VocabularyItem>>`
 
 **AppSettings** — typed preferences wrapper:
-- Currently: `useSimplified` (traditional vs simplified preference)
+- `useSimplified`: Boolean — traditional vs simplified preference
+- `apiKey`: String — falls back to platform `defaultApiKey` when unset; user override persists
 - Backed by Multiplatform Settings
+
+**IncomingText** — `Channel<String>(CONFLATED)` bus for text handed in from outside the app (Android `ACTION_PROCESS_TEXT`/`SEND` intents, iOS share extension via URL scheme). `submitSharedText(text)` is exposed for Swift. `TranslatorRoute` collects `IncomingText.texts` and forwards to `viewModel.onSharedText()`.
+
+**ChineseScriptConverter** (in `util/`) — character-level Simplified↔Traditional mapping (~400 pairs, OpenCC-derived). Unknown chars pass through. Used for client-side display normalization; Qwen still does the authoritative conversion in the JSON response.
 
 ### Network
 
@@ -110,36 +119,36 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 ### UI Layer
 
-**App.kt** — Root composable with theme, navigation, ViewModel factory:
-- Material3 theme (custom colors: BluePrimary, GoldAccent, etc.)
-- Scaffold with bottom NavigationBar (Android) or inline tabs (iOS/Web)
-- Two main tabs: Translate + Vocabulary
+**App.kt** — thin wrapper: theme + `TranslatorRoute` with `apiKey` state from `AppSettings`.
 
-**TranslateTab** — Input, translation display, vocab actions:
+**TranslatorRoute** (`ui/screens/`) — owns `TranslatorViewModel` (re-created via `key(apiKey)` so a new key rebuilds `QwenService`), wires snackbar host, `IncomingText` collector, image picker, and the bottom-`NavigationBar` Scaffold across all platforms (Translate / Saved tabs).
+
+**TranslateScreen** — Input, translation display, vocab actions:
 - Debounced input (800ms delay before API call)
 - Shows TranslationResult card with original, translation, pinyin, vocabulary breakdown
 - Vocab cards show save/remove buttons and frequency badges
 
 **VocabularyScreen** — Saved words list, frequency sorting
 
-**Components**: TranslationResultCard, VocabularyCard, ErrorCard (reusable across screens)
+**Components** (`ui/components/`): TranslationResultCard, VocabularyCard, ErrorCard, InputPanel, MicButton, LanguageDirectionBar, ImageSourceDialog, ApiKeyDialog, SectionLabel.
 
 ### Platform-Specific (expect/actual)
 
-**AudioPlayer** (expect in commonMain, actual in androidMain/iosMain):
-- `speak(text, language)` — TTS for pinyin/translation
-- `stop()` — Cancel playback
-- `release()` — Cleanup resources
-- Android: MediaPlayer via TextToSpeech
-- iOS: AVFoundation AVSpeechSynthesizer
-- Web: Stub (empty implementations)
+**AudioPlayer** (`audio/`):
+- `speak(text, language)`, `stop()`, `release()`
+- Android: `android.speech.tts.TextToSpeech`, initialized on first construct, locale set per `speak`
+- iOS: `AVSpeechSynthesizer` (forces `zh-CN` voice, rate 0.45)
+- Web: empty stub
 
-**AppContext** (Android only):
-- Holds global Android Context for platform APIs
+**SpeechRecognizer** (`speech/`) — emits `SpeechResult` (`Ready` / `SpeechStarted` / `Partial` / `Final` / `Cancelled` / `Error`); ViewModel maps these to `RecordingPhase` transitions.
 
-**`webMain` sourceSet** (intermediate for `jsMain` + `wasmJsMain`):
-- Explicitly configured via `dependsOn(commonMain)` in `build.gradle.kts`
-- Contains stubs for AudioPlayer, SpeechRecognizer, OcrReader, ImagePickerLauncher, and `isWebPlatform = true`
+**OcrReader** (`ocr/`) — `recognizeText(bytes, OcrLanguage)` returns a `Flow<OcrResult>` (`Success`/`Error`). Android uses ML Kit's Chinese + Latin recognizers; iOS uses Vision.
+
+**ImagePickerLauncher** (`ui/`) — `rememberImagePickerLauncher { bytes -> }`; Android opens gallery via `ActivityResultContracts`, iOS via `UIImagePickerController`.
+
+**AppContext** (Android, in `audio/` package): holds `applicationContext`; set from `MainActivity.onCreate`. Required because `AudioPlayer`/recognizers are constructed from common code.
+
+**`webMain` sourceSet** — intermediate parent of `jsMain` + `wasmJsMain` (wired via the default hierarchy template + matching `src/webMain` directory). Hosts no-op stubs for AudioPlayer, SpeechRecognizer, OcrReader, ImagePickerLauncher, plus `isWebPlatform = true`.
 
 ## Key Design Decisions
 
@@ -152,6 +161,8 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 4. **No exceptions for expected failures**: Translation/network errors are modeled as `TranslationState.Error` sealed class variant, not thrown.
 
 5. **Multiplatform Settings over platform-specific**: Unified persistence API; serialization plugin for complex types (List<VocabularyItem>).
+
+6. **API key injection diverges by platform**: Android via `BuildConfig` (build.gradle reads `qwen.apiKey` from `local.properties` or `QWEN_API_KEY` env var); iOS via the `generateIosSecrets` task that writes `SecretsGenerated.kt` into `iosMain` build output; Web intentionally has empty default (would leak in JS bundle). All platforms persist a user-supplied override in `AppSettings.apiKey`.
 
 ## Common Workflows
 
@@ -185,7 +196,9 @@ Add new deps to `libs.versions.toml` version catalog only; do not hardcode versi
 
 ## Notes
 
-- **No strict null safety for API responses**: QwenService uses lenient JSON parsing; malformed responses logged but non-fatal.
-- **Audio resource cleanup**: Call `audioPlayer.release()` in ViewModel.onCleared() or screen disposal.
+- **No strict null safety for API responses**: QwenService uses lenient JSON parsing; malformed responses logged but non-fatal. Markdown fences (```json``` / ``` ```) are stripped before parsing.
+- **Audio resource cleanup**: `TranslatorViewModel.onCleared()` releases `AudioPlayer` and `SpeechRecognizer`.
 - **iOS framework**: Gradle builds framework binary to `composeApp/build/XCFramework/` after Kotlin compilation; Xcode links it.
 - **Web audio stub**: TTS not implemented for JS/WASM; UI gracefully hides audio buttons on web.
+- **Shared text entry**: Android `ACTION_PROCESS_TEXT` intent in `MainActivity.handleSharedText` submits to `IncomingText`. iOS share extension is currently reverted (see commit `fd42978`); `submitSharedText()` remains in commonMain for re-introduction.
+- **Android-only permissions** (`AndroidManifest.xml`): `INTERNET`, `RECORD_AUDIO`, `CAMERA`. Launcher activity is `singleTop` to keep PROCESS_TEXT intents on the existing instance.
