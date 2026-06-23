@@ -7,7 +7,7 @@ import com.russhwolf.settings.set
 object AppSettings {
     private val settings: Settings = Settings()
     private const val KEY_USE_SIMPLIFIED = "use_simplified"
-    private const val KEY_API_KEY = "qwen_api_key"
+    private const val KEY_API_KEY = "doubao_api_key"
 
     var useSimplified: Boolean
         get() = settings.getBoolean(KEY_USE_SIMPLIFIED, false)

@@ -7,7 +7,7 @@ import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
-import com.mettyoung.deconstructchinese.network.QwenService
+import com.mettyoung.deconstructchinese.network.DoubaoService
 import com.mettyoung.deconstructchinese.ocr.OcrLanguage
 import com.mettyoung.deconstructchinese.ocr.OcrReader
 import com.mettyoung.deconstructchinese.ocr.OcrResult
@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 
 class TranslatorViewModel(apiKey: String) : ViewModel() {
 
-    private val qwenService = QwenService(apiKey)
+    private val doubaoService = DoubaoService(apiKey)
     private val audioPlayer = AudioPlayer()
     private val speechRecognizer = SpeechRecognizer()
     private val ocrReader = OcrReader()
@@ -135,7 +135,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
             _translationState.value = TranslationState.Loading
 
             try {
-                val result = qwenService.translate(text, _toEnglish.value, _useSimplified.value)
+                val result = doubaoService.translate(text, _toEnglish.value, _useSimplified.value)
                 result.vocabulary.forEach { item ->
                     if (VocabularyStore.isSaved(item.word)) {
                         VocabularyStore.bumpFrequency(item)
@@ -146,7 +146,7 @@ class TranslatorViewModel(apiKey: String) : ViewModel() {
                 _translationState.value = TranslationState.Error(
                     message = when {
                         e.message?.contains("401") == true ->
-                            "Invalid API key. Please check your Qwen API key."
+                            "Invalid API key. Please check your Doubao API key."
                         e.message?.contains("429") == true ->
                             "Rate limit reached. Wait a moment and try again."
                         e.message?.contains("connect") == true ->

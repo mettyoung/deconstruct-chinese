@@ -3,7 +3,7 @@ package com.mettyoung.deconstructchinese.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mettyoung.deconstructchinese.model.TranslationState
-import com.mettyoung.deconstructchinese.network.QwenService
+import com.mettyoung.deconstructchinese.network.DoubaoService
 import com.mettyoung.deconstructchinese.storage.AppSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +15,7 @@ class TranslatorPopupViewModel(
     private val useSimplified: Boolean = AppSettings.useSimplified
 ) : ViewModel() {
 
-    private val qwenService = QwenService(apiKey)
+    private val doubaoService = DoubaoService(apiKey)
 
     private val _translationState =
         MutableStateFlow<TranslationState>(TranslationState.Idle)
@@ -38,13 +38,13 @@ class TranslatorPopupViewModel(
         viewModelScope.launch {
             _translationState.value = TranslationState.Loading
             try {
-                val result = qwenService.translate(trimmed, toEnglish = true, useSimplified = useSimplified)
+                val result = doubaoService.translate(trimmed, toEnglish = true, useSimplified = useSimplified)
                 _translationState.value = TranslationState.Success(result)
             } catch (e: Exception) {
                 _translationState.value = TranslationState.Error(
                     when {
                         e.message?.contains("401") == true ->
-                            "Invalid API key. Please check your Qwen API key."
+                            "Invalid API key. Please check your Doubao API key."
                         e.message?.contains("429") == true ->
                             "Rate limit reached. Wait a moment and try again."
                         e.message?.contains("connect") == true ->
@@ -58,7 +58,7 @@ class TranslatorPopupViewModel(
 
     companion object {
         const val NOT_CHINESE_MESSAGE = "Deconstruct Chinese only translates Chinese text."
-        const val MISSING_API_KEY_MESSAGE = "Set your Qwen API key in the app to translate."
+        const val MISSING_API_KEY_MESSAGE = "Set your Doubao API key in the app to translate."
 
         fun containsHan(text: String): Boolean =
             text.any { it.code in 0x4E00..0x9FFF }

@@ -17,36 +17,36 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Serializable
-data class QwenRequest(
-    val model: String = "qwen-plus",
-    val messages: List<QwenMessage>,
+data class DoubaoRequest(
+    val model: String = "doubao-lite-32k",
+    val messages: List<DoubaoMessage>,
     val temperature: Double = 0.0
 )
 
 @Serializable
-data class QwenMessage(
+data class DoubaoMessage(
     val role: String,
     val content: String
 )
 
 @Serializable
-data class QwenResponse(
-    val choices: List<QwenChoice>? = null,
+data class DoubaoResponse(
+    val choices: List<DoubaoChoice>? = null,
     val id: String? = null
 )
 
 @Serializable
-data class QwenChoice(
-    val message: QwenMessage? = null,
+data class DoubaoChoice(
+    val message: DoubaoMessage? = null,
     val finish_reason: String? = null
 )
 
-class QwenService(private val apiKey: String) {
+class DoubaoService(private val apiKey: String) {
 
     private val jsonConfig = Json {
         ignoreUnknownKeys = true
         isLenient = true
-        encodeDefaults = true 
+        encodeDefaults = true
     }
 
     private val client = HttpClient {
@@ -63,7 +63,8 @@ class QwenService(private val apiKey: String) {
         }
     }
 
-    private val baseUrl = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions"
+    // Doubao (ByteDance Ark) OpenAI-compatible endpoint
+    private val baseUrl = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
 
     suspend fun translate(text: String, toEnglish: Boolean = false, useSimplified: Boolean = true): TranslationResult {
         val chineseVariant = if (useSimplified) "Simplified Chinese (简体中文)" else "Traditional Chinese (繁體中文)"
@@ -72,11 +73,11 @@ class QwenService(private val apiKey: String) {
         else
             "You are a professional translator and language teacher specializing in $chineseVariant. Translate English into $chineseVariant and provide a vocabulary breakdown. Respond ONLY with valid JSON."
         val userPrompt = if (toEnglish) buildPromptToEnglish(text, useSimplified) else buildPromptToChinese(text, useSimplified)
-        
-        val requestBody = QwenRequest(
+
+        val requestBody = DoubaoRequest(
             messages = listOf(
-                QwenMessage("system", systemPrompt),
-                QwenMessage("user", userPrompt)
+                DoubaoMessage("system", systemPrompt),
+                DoubaoMessage("user", userPrompt)
             )
         )
 
@@ -90,21 +91,21 @@ class QwenService(private val apiKey: String) {
 
         if (!response.status.isSuccess()) {
             val errorBody = response.bodyAsText()
-            throw Exception("Qwen API error: ${response.status} - $errorBody")
+            throw Exception("Doubao API error: ${response.status} - $errorBody")
         }
 
-        val body: QwenResponse = response.body()
+        val body: DoubaoResponse = response.body()
 
         val rawText = body.choices
             ?.firstOrNull()
             ?.message
             ?.content
-            ?: throw Exception("Empty response from Qwen")
+            ?: throw Exception("Empty response from Doubao")
 
-        return parseQwenResponse(rawText, text, toEnglish, useSimplified)
+        return parseResponse(rawText, text, toEnglish, useSimplified)
     }
 
-    private fun logCurl(requestBody: QwenRequest) {
+    private fun logCurl(requestBody: DoubaoRequest) {
         val bodyString = jsonConfig.encodeToString(requestBody)
         val curl = """
             curl "$baseUrl" \
@@ -112,8 +113,8 @@ class QwenService(private val apiKey: String) {
             -H "Content-Type: application/json" \
             -d '${bodyString.replace("'", "\\'")}'
         """.trimIndent()
-        
-        println("── DEBUG: Qwen API cURL ──────────────────────────────────────")
+
+        println("── DEBUG: Doubao API cURL ──────────────────────────────────────")
         println(curl)
         println("────────────────────────────────────────────────────────────────")
     }
@@ -189,7 +190,7 @@ Rules:
         """.trimIndent()
     }
 
-    private fun parseQwenResponse(rawText: String, originalText: String, toEnglish: Boolean, useSimplified: Boolean): TranslationResult {
+    private fun parseResponse(rawText: String, originalText: String, toEnglish: Boolean, useSimplified: Boolean): TranslationResult {
         val cleanJson = rawText
             .removePrefix("```json")
             .removePrefix("```")
@@ -205,7 +206,7 @@ Rules:
         )
 
         @Serializable
-        data class QwenTranslation(
+        data class TranslationDto(
             val traditionalChineseText: String = "",
             val translatedText: String,
             val phoneticText: String,
@@ -213,7 +214,7 @@ Rules:
             val vocabulary: List<VocabDto>
         )
 
-        val parsed = jsonConfig.decodeFromString<QwenTranslation>(cleanJson)
+        val parsed = jsonConfig.decodeFromString<TranslationDto>(cleanJson)
         val chineseText = if (toEnglish) parsed.traditionalChineseText else parsed.translatedText
         val chineseLang = if (useSimplified) Language.CHINESE_SIMPLIFIED else Language.CHINESE_TRADITIONAL
 
