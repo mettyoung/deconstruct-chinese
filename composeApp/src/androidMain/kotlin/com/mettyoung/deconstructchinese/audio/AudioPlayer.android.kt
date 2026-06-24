@@ -38,26 +38,25 @@ actual class AudioPlayer actual constructor() {
     }
 
     actual fun playListenCue() {
-        // Synthesized rising two-note chime (G5 -> C6), à la a voice-assistant
-        // "ready to listen" blip. No bundled asset, generated on the fly.
+        // Single low "pop" — soft percussive blip like a voice-assistant /
+        // Google Translate mic tap. Low sine with a fast exponential decay.
         Thread {
             runCatching {
                 val sampleRate = 44_100
-                val notes = doubleArrayOf(783.99, 1046.50) // G5, C6
-                val noteSamples = sampleRate * 95 / 1000    // ~95ms per note
-                val fade = 240                              // click-free in/out ramp
-                val buf = ShortArray(noteSamples * notes.size)
-                var i = 0
-                for (freq in notes) {
-                    for (n in 0 until noteSamples) {
-                        val env = when {
-                            n < fade -> n.toDouble() / fade
-                            n > noteSamples - fade -> (noteSamples - n).toDouble() / fade
-                            else -> 1.0
-                        }
-                        val amp = Short.MAX_VALUE * 0.32 * env
-                        buf[i++] = (amp * sin(2.0 * PI * freq * n / sampleRate)).toInt().toShort()
-                    }
+                val freq = 200.0                          // low, soft
+                val durMs = 75
+                val totalSamples = sampleRate * durMs / 1000
+                val attack = 60                           // ~1.4ms click-free attack
+                val buf = ShortArray(totalSamples)
+                val tail = 200                            // ramp to silence, no end click
+                for (n in 0 until totalSamples) {
+                    val t = n.toDouble() / sampleRate
+                    val attackEnv = if (n < attack) n.toDouble() / attack else 1.0
+                    val tailEnv =
+                        if (n > totalSamples - tail) (totalSamples - n).toDouble() / tail else 1.0
+                    val decayEnv = kotlin.math.exp(-t * 38.0)   // fast pop decay
+                    val amp = Short.MAX_VALUE * 0.5 * attackEnv * decayEnv * tailEnv
+                    buf[n] = (amp * sin(2.0 * PI * freq * t)).toInt().toShort()
                 }
                 val track = AudioTrack(
                     AudioManager.STREAM_MUSIC,
@@ -69,8 +68,7 @@ actual class AudioPlayer actual constructor() {
                 )
                 track.write(buf, 0, buf.size)
                 track.play()
-                // Let it finish, then free the track.
-                Thread.sleep((notes.size * 95 + 60).toLong())
+                Thread.sleep((durMs + 60).toLong())
                 track.stop()
                 track.release()
             }
