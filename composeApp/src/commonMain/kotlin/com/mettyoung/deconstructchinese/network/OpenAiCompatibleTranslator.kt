@@ -11,13 +11,18 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.preparePost
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.utils.io.readUTF8Line
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -27,7 +32,27 @@ private data class ChatRequest(
     val model: String,
     val messages: List<ChatMessage>,
     val temperature: Double = 0.0,
-    val response_format: ResponseFormat? = null
+    val response_format: ResponseFormat? = null,
+    val stream: Boolean = false,
+    val thinking: Thinking? = null
+)
+
+@Serializable
+private data class Thinking(val type: String)
+
+@Serializable
+private data class StreamChunk(
+    val choices: List<StreamChoice>? = null
+)
+
+@Serializable
+private data class StreamChoice(
+    val delta: StreamDelta? = null
+)
+
+@Serializable
+private data class StreamDelta(
+    val content: String? = null
 )
 
 @Serializable
@@ -56,8 +81,16 @@ abstract class OpenAiCompatibleTranslator(
     private val baseUrl: String,
     private val model: String,
     private val providerLabel: String,
-    private val useJsonMode: Boolean = true
+    private val useJsonMode: Boolean = true,
+    private val userPromptPrefix: String = "",
+    // Doubao's seed models are hybrid reasoning models that stream a
+    // chain-of-thought before the answer — the dominant latency cost. Adapters
+    // that hit such a model set this true to request a direct (non-thinking) reply.
+    private val disableThinking: Boolean = false
 ) : TranslationService {
+
+    private val thinkingMode: Thinking? =
+        if (disableThinking) Thinking("disabled") else null
 
     final override suspend fun translate(
         text: String,
@@ -68,8 +101,9 @@ abstract class OpenAiCompatibleTranslator(
         val t0 = currentTimeMillis()
         println("[TranslationService] start provider=$providerLabel model=$model url=$baseUrl includeGrammarNote=$includeGrammarNote jsonMode=$useJsonMode chars=${text.length}")
         val systemPrompt = if (toEnglish) SYSTEM_TO_EN else systemToChinese(useSimplified)
-        val userPrompt = if (toEnglish) buildPromptToEnglish(text, useSimplified, includeGrammarNote)
+        val baseUserPrompt = if (toEnglish) buildPromptToEnglish(text, useSimplified, includeGrammarNote)
         else buildPromptToChinese(text, useSimplified, includeGrammarNote)
+        val userPrompt = if (userPromptPrefix.isNotEmpty()) "$userPromptPrefix\n$baseUserPrompt" else baseUserPrompt
 
         val requestBody = ChatRequest(
             model = model,
@@ -77,7 +111,8 @@ abstract class OpenAiCompatibleTranslator(
                 ChatMessage("system", systemPrompt),
                 ChatMessage("user", userPrompt)
             ),
-            response_format = if (useJsonMode) ResponseFormat("json_object") else null
+            response_format = if (useJsonMode) ResponseFormat("json_object") else null,
+            thinking = thinkingMode
         )
 
         logCurl(requestBody)
@@ -104,6 +139,60 @@ abstract class OpenAiCompatibleTranslator(
         val tDone = currentTimeMillis()
         println("[TranslationService] done provider=$providerLabel total=${tDone - t0}ms send=${tSend - t0}ms headers=${tHeaders - tSend}ms body=${tBody - tHeaders}ms parse=${tDone - tBody}ms outChars=${rawText.length}")
         return result
+    }
+
+    final override fun translateStream(
+        text: String,
+        toEnglish: Boolean,
+        useSimplified: Boolean
+    ): Flow<String> = flow {
+        val t0 = currentTimeMillis()
+        println("[TranslationService] stream start provider=$providerLabel model=$model chars=${text.length}")
+        val systemPrompt = STREAM_SYSTEM
+        val userPrompt = buildStreamPrompt(text, toEnglish, useSimplified)
+
+        val requestBody = ChatRequest(
+            model = model,
+            messages = listOf(
+                ChatMessage("system", systemPrompt),
+                ChatMessage("user", userPrompt)
+            ),
+            stream = true,
+            thinking = thinkingMode
+        )
+
+        sharedClient.preparePost(baseUrl) {
+            header("Authorization", "Bearer $apiKey")
+            contentType(ContentType.Application.Json)
+            setBody(requestBody)
+        }.execute { response ->
+            if (!response.status.isSuccess()) {
+                val errorBody = response.bodyAsText()
+                throw Exception("$providerLabel API error: ${response.status} - $errorBody")
+            }
+            val channel = response.bodyAsChannel()
+            val acc = StringBuilder()
+            var firstToken = true
+            while (true) {
+                val line = channel.readUTF8Line() ?: break
+                if (!line.startsWith("data:")) continue
+                val payload = line.removePrefix("data:").trim()
+                if (payload.isEmpty()) continue
+                if (payload == "[DONE]") break
+                val delta = runCatching {
+                    jsonConfig.decodeFromString<StreamChunk>(payload)
+                        .choices?.firstOrNull()?.delta?.content
+                }.getOrNull() ?: continue
+                if (delta.isEmpty()) continue
+                if (firstToken) {
+                    println("[TranslationService] stream first-token=${currentTimeMillis() - t0}ms")
+                    firstToken = false
+                }
+                acc.append(delta)
+                emit(acc.toString())
+            }
+        }
+        println("[TranslationService] stream done provider=$providerLabel total=${currentTimeMillis() - t0}ms")
     }
 
     private fun currentTimeMillis(): Long = io.ktor.util.date.getTimeMillis()
@@ -172,6 +261,22 @@ abstract class OpenAiCompatibleTranslator(
     companion object {
         private const val SIMPLIFIED = "Simplified Chinese (简体中文)"
         private const val TRADITIONAL = "Traditional Chinese (繁體中文)"
+
+        // Stage 1: tiny output for fast first paint. No JSON, no vocabulary.
+        private const val STREAM_SYSTEM =
+            "You are a translator. Output ONLY the translation text — no quotes, " +
+                "no pinyin, no explanations, no extra words."
+
+        private fun buildStreamPrompt(
+            text: String,
+            toEnglish: Boolean,
+            useSimplified: Boolean
+        ): String = if (toEnglish) {
+            "Translate to English:\n$text"
+        } else {
+            val variant = if (useSimplified) SIMPLIFIED else TRADITIONAL
+            "Translate to $variant:\n$text"
+        }
         private const val SYSTEM_TO_EN =
             "You are a professional Chinese language teacher and translator. " +
                 "Translate Chinese text into English, and provide a detailed Chinese vocabulary breakdown. " +
@@ -188,9 +293,9 @@ abstract class OpenAiCompatibleTranslator(
         private val sharedClient: HttpClient by lazy {
             HttpClient {
                 install(HttpTimeout) {
-                    requestTimeoutMillis = 60_000
+                    requestTimeoutMillis = 120_000
                     connectTimeoutMillis = 15_000
-                    socketTimeoutMillis = 60_000
+                    socketTimeoutMillis = 120_000
                 }
                 install(ContentNegotiation) {
                     json(jsonConfig)

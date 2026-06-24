@@ -28,8 +28,24 @@ import com.mettyoung.deconstructchinese.ui.theme.*
 private fun ChineseWithPinyin(
     vocabulary: List<VocabularyItem>,
     useSimplified: Boolean,
+    fallbackText: String,
     modifier: Modifier = Modifier
 ) {
+    // Stage 1 (streaming): no per-word segmentation yet — show the raw Chinese
+    // big without pinyin until the breakdown arrives.
+    if (vocabulary.isEmpty()) {
+        if (fallbackText.isNotBlank()) {
+            Text(
+                text = fallbackText,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                lineHeight = 44.sp,
+                modifier = modifier
+            )
+        }
+        return
+    }
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -78,6 +94,7 @@ fun TranslationResultCard(
     isPlaying: Boolean,
     savedVocab: List<VocabularyItem>,
     useSimplified: Boolean = false,
+    vocabLoading: Boolean = false,
     onSpeak: () -> Unit,
     onStop: () -> Unit,
     onSpeakWord: (String) -> Unit,
@@ -137,6 +154,7 @@ fun TranslationResultCard(
                 ChineseWithPinyin(
                     vocabulary    = result.vocabulary,
                     useSimplified = useSimplified,
+                    fallbackText  = displayChineseText,
                     modifier      = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -209,16 +227,35 @@ fun TranslationResultCard(
             color = TextSecondary.copy(alpha = 0.8f)
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            result.vocabulary.forEach { item ->
-                val isSaved = savedVocab.any { it.word == item.word }
-                VocabularyCard(
-                    item         = item,
-                    isSaved      = isSaved,
-                    useSimplified = useSimplified,
-                    onSpeak      = { onSpeakWord(item.word) },
-                    onSaveToggle = { if (isSaved) onRemoveWord(item) else onSaveWord(item) }
+        if (vocabLoading && result.vocabulary.isEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = BluePrimary
                 )
+                Text(
+                    "Loading breakdown…",
+                    fontSize = 14.sp,
+                    color = TextSecondary.copy(alpha = 0.8f)
+                )
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                result.vocabulary.forEach { item ->
+                    val isSaved = savedVocab.any { it.word == item.word }
+                    VocabularyCard(
+                        item         = item,
+                        isSaved      = isSaved,
+                        useSimplified = useSimplified,
+                        onSpeak      = { onSpeakWord(item.word) },
+                        onSaveToggle = { if (isSaved) onRemoveWord(item) else onSaveWord(item) }
+                    )
+                }
             }
         }
     }

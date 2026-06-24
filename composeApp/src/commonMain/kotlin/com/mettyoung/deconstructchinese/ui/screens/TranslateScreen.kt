@@ -114,6 +114,7 @@ fun TranslateScreen(
                             isPlaying = isPlaying,
                             savedVocab = savedVocab,
                             useSimplified = useSimplified,
+                            vocabLoading = state.vocabLoading,
                             onSpeak = onSpeak,
                             onStop = onStop,
                             onSpeakWord = onSpeakWord,

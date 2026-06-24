@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(jq -r '.tool_input.command // \"\"'); if printf '%s' \"$CMD\" | grep -Eq '\\bgit\\b.*\\bcommit\\b'; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Reminder: a git commit just ran. Per CLAUDE.md maintenance rules, review whether this commit changed architecture/conventions and update CLAUDE.md if so.\"}}'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
