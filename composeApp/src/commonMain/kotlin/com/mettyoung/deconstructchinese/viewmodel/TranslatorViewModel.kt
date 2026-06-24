@@ -71,6 +71,10 @@ class TranslatorViewModel(
                 when (result) {
                     is SpeechResult.Ready -> {
                         if (_recordingPhase.value != RecordingPhase.Idle) {
+                            // Cue the user the moment "Speak now" appears.
+                            if (_recordingPhase.value != RecordingPhase.Armed) {
+                                audioPlayer.playListenCue()
+                            }
                             _recordingPhase.value = RecordingPhase.Armed
                         }
                     }
