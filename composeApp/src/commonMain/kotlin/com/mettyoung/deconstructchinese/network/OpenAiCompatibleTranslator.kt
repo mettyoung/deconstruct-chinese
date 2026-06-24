@@ -145,7 +145,7 @@ abstract class OpenAiCompatibleTranslator(
         text: String,
         toEnglish: Boolean,
         useSimplified: Boolean
-    ): Flow<String> = flow {
+    ): Flow<PartialTranslation> = flow {
         val t0 = currentTimeMillis()
         println("[TranslationService] stream start provider=$providerLabel model=$model chars=${text.length}")
         val systemPrompt = STREAM_SYSTEM
@@ -189,7 +189,12 @@ abstract class OpenAiCompatibleTranslator(
                     firstToken = false
                 }
                 acc.append(delta)
-                emit(acc.toString())
+                // Output format: "<translation>|||<pinyin>". Split so the
+                // translation paints while it streams, then pinyin fills in.
+                val parts = acc.split(STREAM_DELIMITER, limit = 2)
+                val translation = parts[0].trimEnd('|', '\n', ' ')
+                val pinyin = parts.getOrNull(1)?.trim().orEmpty()
+                emit(PartialTranslation(translation, pinyin))
             }
         }
         println("[TranslationService] stream done provider=$providerLabel total=${currentTimeMillis() - t0}ms")
@@ -262,20 +267,29 @@ abstract class OpenAiCompatibleTranslator(
         private const val SIMPLIFIED = "Simplified Chinese (简体中文)"
         private const val TRADITIONAL = "Traditional Chinese (繁體中文)"
 
-        // Stage 1: tiny output for fast first paint. No JSON, no vocabulary.
+        // Stage 1: small output for fast first paint — translation + sentence
+        // pinyin, but NO per-word vocabulary breakdown.
+        const val STREAM_DELIMITER = "|||"
+
         private const val STREAM_SYSTEM =
-            "You are a translator. Output ONLY the translation text — no quotes, " +
-                "no pinyin, no explanations, no extra words."
+            "You are a translator. Follow the output format exactly. " +
+                "No labels, no quotes, no explanations, no extra words."
 
         private fun buildStreamPrompt(
             text: String,
             toEnglish: Boolean,
             useSimplified: Boolean
         ): String = if (toEnglish) {
-            "Translate to English:\n$text"
+            // pinyin is of the Chinese INPUT.
+            "Translate the following Chinese to English.\n" +
+                "Output exactly: <English translation>$STREAM_DELIMITER<pinyin with tone marks of the Chinese input>\n\n" +
+                "Chinese:\n$text"
         } else {
             val variant = if (useSimplified) SIMPLIFIED else TRADITIONAL
-            "Translate to $variant:\n$text"
+            // pinyin is of the Chinese OUTPUT.
+            "Translate the following English to $variant.\n" +
+                "Output exactly: <$variant translation>$STREAM_DELIMITER<pinyin with tone marks of that translation>\n\n" +
+                "English:\n$text"
         }
         private const val SYSTEM_TO_EN =
             "You are a professional Chinese language teacher and translator. " +

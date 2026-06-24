@@ -143,10 +143,10 @@ class TranslatorViewModel(
                 if (simp) Language.CHINESE_SIMPLIFIED else Language.CHINESE_TRADITIONAL
 
             try {
-                // Stage 1: stream a plain translation for fast first paint.
-                translationService.translateStream(text, toEng, simp).collect { acc ->
+                // Stage 1: stream translation + sentence pinyin for fast first paint.
+                translationService.translateStream(text, toEng, simp).collect { partial ->
                     _translationState.value = TranslationState.Success(
-                        result = partialResult(text, acc, toEng, chineseLang),
+                        result = partialResult(text, partial.translation, partial.pinyin, toEng, chineseLang),
                         vocabLoading = true
                     )
                 }
@@ -176,13 +176,14 @@ class TranslatorViewModel(
     private fun partialResult(
         original: String,
         translated: String,
+        phonetic: String,
         toEnglish: Boolean,
         chineseLang: Language
     ) = TranslationResult(
         originalText = original,
         translatedText = translated,
         chineseText = if (toEnglish) original else translated,
-        phoneticText = "",
+        phoneticText = phonetic,
         vocabulary = emptyList(),
         grammarNote = "",
         sourceLanguage = if (toEnglish) chineseLang else Language.ENGLISH,

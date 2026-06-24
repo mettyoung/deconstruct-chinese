@@ -42,18 +42,18 @@ class TranslatorPopupViewModel(
             val chineseLang =
                 if (useSimplified) Language.CHINESE_SIMPLIFIED else Language.CHINESE_TRADITIONAL
             try {
-                // Stage 1: stream the plain translation for fast first paint.
+                // Stage 1: stream translation + sentence pinyin for fast first paint.
                 translationService.translateStream(
                     text = trimmed,
                     toEnglish = true,
                     useSimplified = useSimplified
-                ).collect { acc ->
+                ).collect { partial ->
                     _translationState.value = TranslationState.Success(
                         result = TranslationResult(
                             originalText = trimmed,
-                            translatedText = acc,
+                            translatedText = partial.translation,
                             chineseText = trimmed,
-                            phoneticText = "",
+                            phoneticText = partial.pinyin,
                             vocabulary = emptyList(),
                             sourceLanguage = chineseLang,
                             targetLanguage = Language.ENGLISH

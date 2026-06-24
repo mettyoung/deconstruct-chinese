@@ -29,20 +29,33 @@ private fun ChineseWithPinyin(
     vocabulary: List<VocabularyItem>,
     useSimplified: Boolean,
     fallbackText: String,
+    fallbackPinyin: String,
     modifier: Modifier = Modifier
 ) {
     // Stage 1 (streaming): no per-word segmentation yet — show the raw Chinese
-    // big without pinyin until the breakdown arrives.
+    // big with the whole-sentence pinyin above it until the breakdown arrives.
     if (vocabulary.isEmpty()) {
         if (fallbackText.isNotBlank()) {
-            Text(
-                text = fallbackText,
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                lineHeight = 44.sp,
-                modifier = modifier
-            )
+            Column(modifier = modifier) {
+                if (fallbackPinyin.isNotBlank()) {
+                    Text(
+                        text = fallbackPinyin,
+                        fontSize = 14.sp,
+                        color = PinyinColor,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.2.sp,
+                        lineHeight = 20.sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+                Text(
+                    text = fallbackText,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    lineHeight = 44.sp
+                )
+            }
         }
         return
     }
@@ -155,6 +168,7 @@ fun TranslationResultCard(
                     vocabulary    = result.vocabulary,
                     useSimplified = useSimplified,
                     fallbackText  = displayChineseText,
+                    fallbackPinyin = result.phoneticText,
                     modifier      = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
