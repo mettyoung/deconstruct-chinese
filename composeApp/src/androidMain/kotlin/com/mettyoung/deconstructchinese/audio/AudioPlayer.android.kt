@@ -1,6 +1,8 @@
 package com.mettyoung.deconstructchinese.audio
 
 import android.content.Context
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.speech.tts.TextToSpeech
 import java.util.Locale
 
@@ -8,6 +10,11 @@ actual class AudioPlayer actual constructor() {
 
     private var tts: TextToSpeech? = null
     private var isReady = false
+
+    // ToneGenerator can throw on some devices; build lazily and guard.
+    private val toneGenerator: ToneGenerator? by lazy {
+        runCatching { ToneGenerator(AudioManager.STREAM_MUSIC, 80) }.getOrNull()
+    }
 
     init {
         val ctx = AppContext.get()
@@ -32,11 +39,16 @@ actual class AudioPlayer actual constructor() {
         tts?.stop()
     }
 
+    actual fun playListenCue() {
+        runCatching { toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150) }
+    }
+
     actual fun release() {
         tts?.stop()
         tts?.shutdown()
         tts = null
         isReady = false
+        toneGenerator?.release()
     }
 }
 

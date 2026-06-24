@@ -4,6 +4,7 @@ import platform.AVFAudio.AVSpeechSynthesizer
 import platform.AVFAudio.AVSpeechUtterance
 import platform.AVFAudio.AVSpeechSynthesisVoice
 import platform.AVFAudio.AVSpeechBoundary
+import platform.AudioToolbox.AudioServicesPlaySystemSound
 
 actual class AudioPlayer actual constructor() {
 
@@ -19,6 +20,11 @@ actual class AudioPlayer actual constructor() {
 
     actual fun stop() {
         synthesizer.stopSpeakingAtBoundary(AVSpeechBoundary.AVSpeechBoundaryImmediate)
+    }
+
+    actual fun playListenCue() {
+        // 1113 = the system "begin record" tone.
+        AudioServicesPlaySystemSound(1113u)
     }
 
     actual fun release() {
