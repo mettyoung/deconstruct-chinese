@@ -153,7 +153,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **AudioPlayer** (`audio/`):
 - `speak(text, language)`, `stop()`, `playListenCue()`, `release()`
-- Android: `android.speech.tts.TextToSpeech`, initialized on first construct, locale set per `speak`; `playListenCue` uses a lazy `ToneGenerator` beep
+- Android: `android.speech.tts.TextToSpeech`, initialized on first construct, locale set per `speak`; `playListenCue` synthesizes a rising two-note chime (G5→C6 PCM) on a worker thread via `AudioTrack`
 - iOS: `AVSpeechSynthesizer` (forces `zh-CN` voice, rate 0.45); `playListenCue` plays system sound 1113 (begin-record tone)
 - Web: empty stub
 - `playListenCue` fires from `TranslatorViewModel` when the recognizer arms (`RecordingPhase.Armed` on `SpeechResult.Ready`) to cue "Speak now"
