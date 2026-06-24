@@ -12,12 +12,19 @@ interface TranslationService {
     ): TranslationResult
 
     /**
-     * Stage 1: stream a plain translation (no JSON, no vocabulary) for fast
-     * first paint. Emits the accumulated translation text as tokens arrive.
+     * Stage 1: stream the translation + whole-sentence pinyin (no per-word
+     * vocabulary) for fast first paint. Emits the accumulated state as tokens
+     * arrive — `translation` fills first, then `pinyin`.
      */
     fun translateStream(
         text: String,
         toEnglish: Boolean = false,
         useSimplified: Boolean = true
-    ): Flow<String>
+    ): Flow<PartialTranslation>
 }
+
+/** Streamed stage-1 state: translation grows first, then pinyin. */
+data class PartialTranslation(
+    val translation: String,
+    val pinyin: String = ""
+)
