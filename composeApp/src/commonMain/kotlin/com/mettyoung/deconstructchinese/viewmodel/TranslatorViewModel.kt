@@ -71,10 +71,6 @@ class TranslatorViewModel(
                 when (result) {
                     is SpeechResult.Ready -> {
                         if (_recordingPhase.value != RecordingPhase.Idle) {
-                            // Cue the user the moment "Speak now" appears.
-                            if (_recordingPhase.value != RecordingPhase.Armed) {
-                                audioPlayer.playListenCue()
-                            }
                             _recordingPhase.value = RecordingPhase.Armed
                         }
                     }
@@ -209,6 +205,8 @@ class TranslatorViewModel(
         _inputText.value = ""
         _translationState.value = TranslationState.Idle
         _recordingPhase.value = RecordingPhase.Armed
+        // Cue the user the moment "Speak now" shows (phase-driven UI flips here).
+        audioPlayer.playListenCue()
         // Source side of the toggle: toEnglish == translating Chinese -> English.
         val locale = if (_toEnglish.value) {
             if (_useSimplified.value) "zh-CN" else "zh-TW"
