@@ -5,23 +5,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Maintenance Rules
 - This CLAUDE.md is a living document. After any major architectural change, refactor, or new convention, update the relevant sections immediately.
 - When I say “update CLAUDE.md”, revise only the changed parts and keep the file concise.
+- **Self-update on every commit**: after each `git commit`, review whether the commit changed architecture, conventions, or build/network/platform wiring; if so, update the relevant CLAUDE.md sections in the same change. A `PostToolUse` hook in `.claude/settings.json` injects this reminder after commits run inside Claude Code.
 
 ## Project Overview
 
-**DeconstructChinese** — Kotlin Multiplatform Compose app for Chinese character translation and learning. Targets Android, iOS, Web (JS/WASM). Translates text via Qwen API, stores vocabulary locally with frequency tracking.
+**DeconstructChinese** — Kotlin Multiplatform Compose app for Chinese character translation and learning. Targets Android, iOS, Web (JS/WASM). Translates text via an OpenAI-compatible LLM provider (Doubao by default), stores vocabulary locally with frequency tracking.
 
 ### Technology Stack
 
 - **KMP**: Kotlin 2.3, Compose Multiplatform 1.10
 - **Network**: Ktor Client 3.0 (OkHttp on Android, Darwin on iOS)
 - **State**: ViewModel + StateFlow, Multiplatform Settings for persistence
-- **Translation**: Qwen API (qwen-plus model)
+- **Translation**: `TranslationService` interface over OpenAI-compatible chat/completions; Doubao (`seed-2-0-lite-260228`) is the wired default, Qwen (`qwen-plus`) adapter also present
 - **Build**: Gradle 8.11 with version catalog (libs.versions.toml)
 - **Audio**: Platform-specific TTS (Android `TextToSpeech`, iOS `AVSpeechSynthesizer`; web stub)
 - **Speech Input**: Hold-to-record via `SpeechRecognizer` expect/actual (Android `android.speech`, iOS `SFSpeechRecognizer`)
 - **OCR**: `OcrReader` expect/actual (Android ML Kit text-recognition + chinese, iOS Vision)
 - **Image Picker**: `rememberImagePickerLauncher` expect fun (Android ActivityResultContracts, iOS UIImagePickerController)
-- **API Key**: `Secrets` expect/actual — Android pulls from `BuildConfig.QWEN_API_KEY`, iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""` (user enters in-app dialog)
+- **API Key**: `Secrets` expect/actual — Android pulls from `BuildConfig.DOUBAO_API_KEY`, iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""` (user enters in-app dialog)
 
 ### Target Platforms
 
@@ -89,6 +90,8 @@ Open `/iosApp` in Xcode and run via IDE (KMP bridging through framework in `comp
 
 ViewModel created once per app lifecycle; state flows collected in Compose via `collectAsStateWithLifecycle()`.
 
+**TranslatorPopupViewModel** (`viewmodel/`) — stripped-down VM for the Android floating popup (see TranslatePopupActivity below). Single `translationState: StateFlow<TranslationState>`, fixed Chinese→English, `includeGrammarNote = false`, no audio/OCR/vocab/debounce. `translate(text)` early-exits on empty / non-Chinese / missing API key before calling the `TranslationService`.
+
 ### Data Layer
 
 **VocabularyStore** (object singleton) — source of truth for saved words:
@@ -105,15 +108,29 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **IncomingText** — `Channel<String>(CONFLATED)` bus for text handed in from outside the app (Android `ACTION_PROCESS_TEXT`/`SEND` intents, iOS share extension via URL scheme). `submitSharedText(text)` is exposed for Swift. `TranslatorRoute` collects `IncomingText.texts` and forwards to `viewModel.onSharedText()`.
 
-**ChineseScriptConverter** (in `util/`) — character-level Simplified↔Traditional mapping (~400 pairs, OpenCC-derived). Unknown chars pass through. Used for client-side display normalization; Qwen still does the authoritative conversion in the JSON response.
+**ChineseScriptConverter** (in `util/`) — character-level Simplified↔Traditional mapping (~400 pairs, OpenCC-derived). Unknown chars pass through. Used for client-side display normalization; the LLM provider still does the authoritative conversion in the JSON response.
 
 ### Network
 
-**QwenService** — HTTP client for Qwen API:
-- Single shared HttpClient across app lifetime (pooled connections)
-- Serializes/deserializes with kotlinx.serialization
-- Platform-specific HTTP engines injected via sourceSets (OkHttp/Darwin/Browser default)
-- `translate(text, toEnglish, useSimplified)` returns `TranslationResult` with vocabulary list
+**TranslationService** (`network/`) — interface with two entry points: `translate(...) -> TranslationResult` (full JSON: translation + pinyin + vocab breakdown) and `translateStream(...) -> Flow<String>` (plain translation only, streamed token-by-token). The provider is **hard-wired to `DoubaoService`** at the call sites (`TranslatorRoute`, `TranslatePopupActivity`); there is no settings/enum switch yet.
+
+**Two-phase translation (latency optimization)**: both ViewModels run a two-stage pipeline. **Stage 1** calls `translateStream` and emits `TranslationState.Success(result, vocabLoading = true)` as tokens arrive — the translation paints immediately (Doubao-app-fast). **Stage 2** calls `translate` for the full breakdown and replaces it with `vocabLoading = false`. If stage 2 fails but stage 1 succeeded, the streamed translation is kept (`vocabLoading = false`, no error). `TranslationResultCard` renders the raw Chinese without per-word pinyin while `vocabulary` is empty, and shows a "Loading breakdown…" spinner under the VOCABULARY BREAKDOWN label.
+
+**OpenAiCompatibleTranslator** — abstract base implementing `TranslationService` against any OpenAI-compatible chat/completions endpoint:
+- Single shared `HttpClient` (lazy singleton) across all subclass instances — pooled connections; request/socket timeout 120s
+- `translate`: builds the JSON request, conditionally includes a grammar-note instruction per `includeGrammarNote`
+- `translateStream`: SSE streaming (`stream = true`), parses `data:` lines into `StreamChunk` deltas, accumulates and emits; tiny stage-1 system prompt (`STREAM_SYSTEM` — translation text only, no JSON/pinyin)
+- `disableThinking` ctor flag → sends `thinking: {type: disabled}`. **Critical for latency**: Doubao's seed models are hybrid reasoning models that otherwise stream a chain-of-thought (`reasoning_content`) before the answer (~5x slower). Adapters hitting such a model set this true.
+- `userPromptPrefix` ctor flag → prepends a token (e.g. `/no_think` for Qwen3) to the user message
+- Strips markdown fences and parses with kotlinx.serialization (lenient)
+- Platform HTTP engines injected via sourceSets (OkHttp/Darwin/Browser default)
+
+**Adapters**:
+- `DoubaoService` — **default**. Model `seed-2-0-lite-260228`, endpoint `https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions`, `disableThinking = true`
+- `OpenRouterService` — present, unused at call sites. Model `qwen/qwen3-14b`, endpoint `https://openrouter.ai/api/v1/chat/completions`, `userPromptPrefix = "/no_think"`. Note OpenRouter cannot pass Doubao's `thinking` param, so the same seed model runs ~3–5x slower there than direct.
+- `QwenService` — present but currently unused. Model `qwen-plus`, endpoint `https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions`
+
+**grammarNote**: `TranslationResult.grammarNote` (`model/TranslationResult.kt`) is populated when `includeGrammarNote = true` and rendered in `TranslationResultCard` when non-blank. The popup VM disables it.
 
 **Error handling**: Network exceptions caught in ViewModel and mapped to user-friendly `TranslationState.Error` messages (auth, rate limit, connectivity, etc.).
 
@@ -121,7 +138,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **App.kt** — thin wrapper: theme + `TranslatorRoute` with `apiKey` state from `AppSettings`.
 
-**TranslatorRoute** (`ui/screens/`) — owns `TranslatorViewModel` (re-created via `key(apiKey)` so a new key rebuilds `QwenService`), wires snackbar host, `IncomingText` collector, image picker, and the bottom-`NavigationBar` Scaffold across all platforms (Translate / Saved tabs).
+**TranslatorRoute** (`ui/screens/`) — owns `TranslatorViewModel` (re-created via `key(apiKey)` so a new key rebuilds the `TranslationService`), wires snackbar host, `IncomingText` collector, image picker, and the bottom-`NavigationBar` Scaffold across all platforms (Translate / Saved tabs).
 
 **TranslateScreen** — Input, translation display, vocab actions:
 - Debounced input (800ms delay before API call)
@@ -148,6 +165,10 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **AppContext** (Android, in `audio/` package): holds `applicationContext`; set from `MainActivity.onCreate`. Required because `AudioPlayer`/recognizers are constructed from common code.
 
+**Android entry points**:
+- `MainActivity` — `singleTop` launcher (MAIN/LAUNCHER only); receives shared text via `SEND` and forwards to `IncomingText`.
+- `TranslatePopupActivity` (androidMain) — handles `PROCESS_TEXT` in a translucent floating dialog (`singleTask`, `excludeFromRecents`, Popup theme, intent-filter `priority=100`). Drives `TranslatorPopupViewModel`, reuses the shared `TranslationResultCard`/`ErrorCard` (card actions mapped to "Open in App", which bridges to `MainActivity`). PROCESS_TEXT now lives here, not on `MainActivity`.
+
 **`webMain` sourceSet** — intermediate parent of `jsMain` + `wasmJsMain` (wired via the default hierarchy template + matching `src/webMain` directory). Hosts no-op stubs for AudioPlayer, SpeechRecognizer, OcrReader, ImagePickerLauncher, plus `isWebPlatform = true`.
 
 ## Key Design Decisions
@@ -162,7 +183,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 5. **Multiplatform Settings over platform-specific**: Unified persistence API; serialization plugin for complex types (List<VocabularyItem>).
 
-6. **API key injection diverges by platform**: Android via `BuildConfig` (build.gradle reads `qwen.apiKey` from `local.properties` or `QWEN_API_KEY` env var); iOS via the `generateIosSecrets` task that writes `SecretsGenerated.kt` into `iosMain` build output; Web intentionally has empty default (would leak in JS bundle). All platforms persist a user-supplied override in `AppSettings.apiKey`.
+6. **API key injection diverges by platform**: Android via `BuildConfig` (build.gradle reads `doubao.apiKey` from `local.properties` or `DOUBAO_API_KEY` env var); iOS via the `generateIosSecrets` task that writes `SecretsGenerated.kt` into `iosMain` build output; Web intentionally has empty default (would leak in JS bundle). All platforms persist a user-supplied override in `AppSettings.apiKey` — note the persisted Settings key is still literally `"qwen_api_key"` (not renamed after the Doubao switch).
 
 ## Common Workflows
 
@@ -173,7 +194,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 4. Preference persists automatically via Multiplatform Settings
 
 ### Fixing a translation issue
-1. Check `QwenService.translate()` prompt logic
+1. Check prompt/request logic in `OpenAiCompatibleTranslator` (shared) and the active adapter (`DoubaoService`)
 2. Verify `TranslationResult` data class matches API response
 3. Add error case to `ViewModel.translate()` catch block if needed
 4. Test via Android debug build (fastest iteration)
@@ -196,9 +217,9 @@ Add new deps to `libs.versions.toml` version catalog only; do not hardcode versi
 
 ## Notes
 
-- **No strict null safety for API responses**: QwenService uses lenient JSON parsing; malformed responses logged but non-fatal. Markdown fences (```json``` / ``` ```) are stripped before parsing.
+- **No strict null safety for API responses**: `OpenAiCompatibleTranslator` uses lenient JSON parsing; malformed responses logged but non-fatal. Markdown fences (```json``` / ``` ```) are stripped before parsing.
 - **Audio resource cleanup**: `TranslatorViewModel.onCleared()` releases `AudioPlayer` and `SpeechRecognizer`.
 - **iOS framework**: Gradle builds framework binary to `composeApp/build/XCFramework/` after Kotlin compilation; Xcode links it.
 - **Web audio stub**: TTS not implemented for JS/WASM; UI gracefully hides audio buttons on web.
-- **Shared text entry**: Android `ACTION_PROCESS_TEXT` intent in `MainActivity.handleSharedText` submits to `IncomingText`. iOS share extension is currently reverted (see commit `fd42978`); `submitSharedText()` remains in commonMain for re-introduction.
-- **Android-only permissions** (`AndroidManifest.xml`): `INTERNET`, `RECORD_AUDIO`, `CAMERA`. Launcher activity is `singleTop` to keep PROCESS_TEXT intents on the existing instance.
+- **Shared text entry**: Android `PROCESS_TEXT` is handled by `TranslatePopupActivity` (floating popup), while `SEND` shares go to `MainActivity` → `IncomingText`. iOS share extension is currently reverted (see commit `fd42978`); `submitSharedText()` remains in commonMain for re-introduction.
+- **Android-only permissions** (`AndroidManifest.xml`): `INTERNET`, `RECORD_AUDIO`, `CAMERA`. `MainActivity` is `singleTop` (launcher); `TranslatePopupActivity` is `singleTask` + `excludeFromRecents` for the PROCESS_TEXT popup.

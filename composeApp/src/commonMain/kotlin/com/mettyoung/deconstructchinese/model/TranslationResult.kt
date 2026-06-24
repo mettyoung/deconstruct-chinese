@@ -38,6 +38,12 @@ data class TranslationResult(
 sealed class TranslationState {
     data object Idle : TranslationState()
     data object Loading : TranslationState()
-    data class Success(val result: TranslationResult) : TranslationState()
+    // Stage 1 streams the translation into `result.translatedText` with
+    // vocabLoading=true (empty vocabulary); stage 2 replaces it with the full
+    // breakdown and vocabLoading=false.
+    data class Success(
+        val result: TranslationResult,
+        val vocabLoading: Boolean = false
+    ) : TranslationState()
     data class Error(val message: String) : TranslationState()
 }

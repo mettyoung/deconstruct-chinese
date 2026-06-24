@@ -161,6 +161,7 @@ private fun PopupContent(
                         isPlaying = false,
                         savedVocab = emptyList(),
                         useSimplified = AppSettings.useSimplified,
+                        vocabLoading = s.vocabLoading,
                         onSpeak = onOpenInApp,
                         onStop = {},
                         onSpeakWord = { onOpenInApp() },

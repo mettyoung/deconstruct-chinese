@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.mettyoung.deconstructchinese.audio.AudioPlayer
 import com.mettyoung.deconstructchinese.model.Language
 import com.mettyoung.deconstructchinese.model.RecordingPhase
+import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.TranslationService
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class TranslatorViewModel(
@@ -130,33 +132,71 @@ class TranslatorViewModel(
 
     fun translate() {
         val text = _inputText.value.trim()
-        if (text.isEmpty() || _translationState.value is TranslationState.Loading) return
+        if (text.isEmpty()) return
 
-        viewModelScope.launch {
+        translateJob?.cancel()
+        translateJob = viewModelScope.launch {
             _translationState.value = TranslationState.Loading
+            val toEng = _toEnglish.value
+            val simp = _useSimplified.value
+            val chineseLang =
+                if (simp) Language.CHINESE_SIMPLIFIED else Language.CHINESE_TRADITIONAL
 
             try {
-                val result = translationService.translate(text, _toEnglish.value, _useSimplified.value)
-                result.vocabulary.forEach { item ->
+                // Stage 1: stream a plain translation for fast first paint.
+                translationService.translateStream(text, toEng, simp).collect { acc ->
+                    _translationState.value = TranslationState.Success(
+                        result = partialResult(text, acc, toEng, chineseLang),
+                        vocabLoading = true
+                    )
+                }
+
+                // Stage 2: full breakdown (vocabulary, pinyin) replaces the partial.
+                val full = translationService.translate(text, toEng, simp)
+                full.vocabulary.forEach { item ->
                     if (VocabularyStore.isSaved(item.word)) {
                         VocabularyStore.bumpFrequency(item)
                     }
                 }
-                _translationState.value = TranslationState.Success(result)
+                _translationState.value = TranslationState.Success(full, vocabLoading = false)
             } catch (e: Exception) {
-                _translationState.value = TranslationState.Error(
-                    message = when {
-                        e.message?.contains("401") == true ->
-                            "Invalid API key. Please check your Qwen API key."
-                        e.message?.contains("429") == true ->
-                            "Rate limit reached. Wait a moment and try again."
-                        e.message?.contains("connect") == true ->
-                            "Network error. Check your internet connection."
-                        else -> "Translation failed: ${e.message}"
-                    }
-                )
+                // Keep a streamed translation if we already have one — only the
+                // breakdown failed. Otherwise surface the error.
+                val current = _translationState.value
+                if (current is TranslationState.Success) {
+                    _translationState.value = current.copy(vocabLoading = false)
+                    _snackbarMessage.tryEmit("Vocabulary breakdown unavailable.")
+                } else {
+                    _translationState.value = TranslationState.Error(mapError(e))
+                }
             }
         }
+    }
+
+    private fun partialResult(
+        original: String,
+        translated: String,
+        toEnglish: Boolean,
+        chineseLang: Language
+    ) = TranslationResult(
+        originalText = original,
+        translatedText = translated,
+        chineseText = if (toEnglish) original else translated,
+        phoneticText = "",
+        vocabulary = emptyList(),
+        grammarNote = "",
+        sourceLanguage = if (toEnglish) chineseLang else Language.ENGLISH,
+        targetLanguage = if (toEnglish) Language.ENGLISH else chineseLang
+    )
+
+    private fun mapError(e: Exception): String = when {
+        e.message?.contains("401") == true ->
+            "Invalid API key. Please check your API key."
+        e.message?.contains("429") == true ->
+            "Rate limit reached. Wait a moment and try again."
+        e.message?.contains("connect") == true ->
+            "Network error. Check your internet connection."
+        else -> "Translation failed: ${e.message}"
     }
 
     fun startRecording() {

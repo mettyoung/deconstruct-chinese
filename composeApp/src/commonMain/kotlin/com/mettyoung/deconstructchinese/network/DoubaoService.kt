@@ -8,7 +8,9 @@ class DoubaoService(
     apiKey = apiKey,
     baseUrl = baseUrl,
     model = model,
-    providerLabel = "Doubao"
+    providerLabel = "Doubao",
+    // seed-2-0-lite is a hybrid reasoning model; skip the chain-of-thought.
+    disableThinking = true
 ) {
     companion object {
         const val DEFAULT_MODEL = "seed-2-0-lite-260228"
