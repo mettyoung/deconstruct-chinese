@@ -152,10 +152,11 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 ### Platform-Specific (expect/actual)
 
 **AudioPlayer** (`audio/`):
-- `speak(text, language)`, `stop()`, `release()`
-- Android: `android.speech.tts.TextToSpeech`, initialized on first construct, locale set per `speak`
-- iOS: `AVSpeechSynthesizer` (forces `zh-CN` voice, rate 0.45)
+- `speak(text, language)`, `stop()`, `playListenCue()`, `release()`
+- Android: `android.speech.tts.TextToSpeech`, initialized on first construct, locale set per `speak`; `playListenCue` uses a lazy `ToneGenerator` beep
+- iOS: `AVSpeechSynthesizer` (forces `zh-CN` voice, rate 0.45); `playListenCue` plays system sound 1113 (begin-record tone)
 - Web: empty stub
+- `playListenCue` fires from `TranslatorViewModel` when the recognizer arms (`RecordingPhase.Armed` on `SpeechResult.Ready`) to cue "Speak now"
 
 **SpeechRecognizer** (`speech/`) — emits `SpeechResult` (`Ready` / `SpeechStarted` / `Partial` / `Final` / `Cancelled` / `Error`); ViewModel maps these to `RecordingPhase` transitions.
 
