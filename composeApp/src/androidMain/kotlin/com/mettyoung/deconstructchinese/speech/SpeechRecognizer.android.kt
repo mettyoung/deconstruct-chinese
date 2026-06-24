@@ -44,9 +44,14 @@ actual class SpeechRecognizer actual constructor() {
 
                 override fun onError(error: Int) {
                     when (error) {
+                        // Silent cancels: a momentary tap or rapid re-tap tears the
+                        // recognizer down before it captures speech. ERROR_SERVER_DISCONNECTED
+                        // (11) and ERROR_RECOGNIZER_BUSY (8) are that case — not real failures.
                         AndroidSpeechRecognizer.ERROR_CLIENT,
                         AndroidSpeechRecognizer.ERROR_NO_MATCH,
-                        AndroidSpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                        AndroidSpeechRecognizer.ERROR_SPEECH_TIMEOUT,
+                        AndroidSpeechRecognizer.ERROR_RECOGNIZER_BUSY,
+                        AndroidSpeechRecognizer.ERROR_SERVER_DISCONNECTED ->
                             _results.tryEmit(SpeechResult.Cancelled)
                         AndroidSpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
                             _results.tryEmit(SpeechResult.Error("Microphone permission denied"))
