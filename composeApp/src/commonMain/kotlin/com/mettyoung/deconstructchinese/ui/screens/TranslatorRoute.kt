@@ -35,7 +35,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mettyoung.deconstructchinese.IncomingText
 import com.mettyoung.deconstructchinese.network.DoubaoService
-import com.mettyoung.deconstructchinese.ui.components.ApiKeyDialog
+import com.mettyoung.deconstructchinese.storage.AppSettings
+import com.mettyoung.deconstructchinese.ui.components.SettingsDialog
 import com.mettyoung.deconstructchinese.ui.rememberImagePickerLauncher
 import com.mettyoung.deconstructchinese.ui.theme.Background
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
@@ -45,12 +46,10 @@ import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 import com.mettyoung.deconstructchinese.viewmodel.TranslatorViewModel
 
 @Composable
-fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
-    val viewModel: TranslatorViewModel = key(apiKey) {
-        viewModel(factory = viewModelFactory {
-            initializer { TranslatorViewModel(DoubaoService(apiKey)) }
-        })
-    }
+fun TranslatorRoute() {
+    val viewModel: TranslatorViewModel = viewModel(factory = viewModelFactory {
+        initializer { TranslatorViewModel(DoubaoService(AppSettings.apiKey)) }
+    })
 
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()
     val translationState by viewModel.translationState.collectAsStateWithLifecycle()
@@ -71,16 +70,14 @@ fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
 
     val imagePicker = rememberImagePickerLauncher { viewModel.processImage(it) }
 
-    var showApiModal by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
-    if (showApiModal) {
-        ApiKeyDialog(
-            currentApiKey = apiKey,
+    if (showSettings) {
+        SettingsDialog(
             useSimplified = useSimplified,
-            onDismiss = { showApiModal = false },
-            onApiKeySubmit = onApiKeySubmit,
-            onUseSimplifiedChange = { viewModel.setUseSimplified(it) }
+            onUseSimplifiedChange = { viewModel.setUseSimplified(it) },
+            onDismiss = { showSettings = false }
         )
     }
 
@@ -105,19 +102,18 @@ fun TranslatorRoute(apiKey: String, onApiKeySubmit: (String) -> Unit) {
                     recordingPhase = recordingPhase,
                     isProcessingImage = isProcessingImage,
                     savedVocab = savedVocab,
-                    apiKey = apiKey,
                     useSimplified = useSimplified,
                     imagePicker = imagePicker,
                     onInputChange = viewModel::onInputTextChange,
                     onClear = viewModel::clearAll,
-                    onTranslate = { if (apiKey.isBlank()) showApiModal = true else viewModel.translate() },
+                    onTranslate = viewModel::translate,
                     onSwapDirection = viewModel::swapDirection,
                     onSpeak = viewModel::speakTranslation,
                     onStop = viewModel::stopAudio,
                     onSpeakWord = viewModel::speakWord,
                     onSaveWord = viewModel::saveWord,
                     onRemoveWord = viewModel::removeWord,
-                    onOpenSettings = { showApiModal = true },
+                    onOpenSettings = { showSettings = true },
                     onStartRecording = viewModel::startRecording,
                     onStopRecording = viewModel::stopRecording
                 )

@@ -56,7 +56,6 @@ fun InputPanel(
     recordingPhase: RecordingPhase,
     isProcessingImage: Boolean,
     translationState: TranslationState,
-    apiKey: String,
     onInputChange: (String) -> Unit,
     onClear: () -> Unit,
     onTranslate: () -> Unit,
@@ -176,7 +175,7 @@ fun InputPanel(
                             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                         ) {
-                            Text(if (apiKey.isBlank()) "Setup API" else "Translate", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Text("Translate", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

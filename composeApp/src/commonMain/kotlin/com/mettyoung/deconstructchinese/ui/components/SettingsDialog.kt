@@ -4,39 +4,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
@@ -46,23 +31,18 @@ import com.mettyoung.deconstructchinese.ui.theme.TextPrimary
 import com.mettyoung.deconstructchinese.ui.theme.TextSecondary
 
 @Composable
-fun ApiKeyDialog(
-    currentApiKey: String,
+fun SettingsDialog(
     useSimplified: Boolean,
-    onDismiss: () -> Unit,
-    onApiKeySubmit: (String) -> Unit,
-    onUseSimplifiedChange: (Boolean) -> Unit
+    onUseSimplifiedChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var keyInput by remember { mutableStateOf(currentApiKey) }
-    var showKey by remember { mutableStateOf(false) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Surface,
         shape = MaterialTheme.shapes.large,
         title = {
             Text(
-                "Settings", 
+                "Settings",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = (-0.5).sp
@@ -71,7 +51,6 @@ fun ApiKeyDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                // Script Preference
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SectionLabel("CHINESE SCRIPT")
                     Row(
@@ -109,64 +88,17 @@ fun ApiKeyDialog(
                         )
                     }
                 }
-
-                // API Key
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel("OPENAI API KEY")
-                    OutlinedTextField(
-                        value = keyInput,
-                        onValueChange = { keyInput = it },
-                        placeholder = { Text("sk-...", color = TextSecondary.copy(alpha = 0.3f)) },
-                        visualTransformation = if (showKey) VisualTransformation.None
-                        else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showKey = !showKey }) {
-                                Icon(
-                                    if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showKey) "Toggle visibility" else "Toggle visibility",
-                                    tint = TextSecondary.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BluePrimary,
-                            unfocusedBorderColor = Divider.copy(alpha = 0.5f),
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            cursorColor = BluePrimary
-                        ),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp)
-                    )
-                    Text(
-                        "Your key is stored locally on your device.",
-                        color = TextSecondary.copy(alpha = 0.5f),
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onApiKeySubmit(keyInput.trim()); onDismiss() },
+                onClick = onDismiss,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = BluePrimary),
                 modifier = Modifier.height(44.dp).padding(horizontal = 8.dp),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
             ) {
-                Text("Save Changes", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.height(44.dp)
-            ) {
-                Text("Cancel", color = TextSecondary, fontWeight = FontWeight.Medium)
+                Text("Done", fontWeight = FontWeight.Bold)
             }
         }
     )

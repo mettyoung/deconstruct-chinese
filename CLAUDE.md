@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Speech Input**: Hold-to-record via `SpeechRecognizer` expect/actual (Android `android.speech`, iOS `SFSpeechRecognizer`)
 - **OCR**: `OcrReader` expect/actual (Android ML Kit text-recognition + chinese, iOS Vision)
 - **Image Picker**: `rememberImagePickerLauncher` expect fun (Android ActivityResultContracts, iOS UIImagePickerController)
-- **API Key**: `Secrets` expect/actual — Android pulls from `BuildConfig.DOUBAO_API_KEY`, iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""` (user enters in-app dialog)
+- **API Key**: `Secrets` expect/actual `defaultApiKey` — Android pulls from `BuildConfig.DOUBAO_API_KEY`, iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""`. The provider key is **bundled**; there is no user-facing API-key entry. `AppSettings.apiKey` returns `defaultApiKey`.
 
 ### Target Platforms
 
@@ -138,7 +138,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **App.kt** — thin wrapper: theme + `TranslatorRoute` with `apiKey` state from `AppSettings`.
 
-**TranslatorRoute** (`ui/screens/`) — owns `TranslatorViewModel` (re-created via `key(apiKey)` so a new key rebuilds the `TranslationService`), wires snackbar host, `IncomingText` collector, image picker, and the bottom-`NavigationBar` Scaffold across all platforms (Translate / Saved tabs).
+**TranslatorRoute** (`ui/screens/`) — owns `TranslatorViewModel` (created once with the bundled key), wires snackbar host, `IncomingText` collector, image picker, the `SettingsDialog` (Chinese-script toggle), and the bottom-`NavigationBar` Scaffold across all platforms (Translate / Saved tabs).
 
 **TranslateScreen** — Input, translation display, vocab actions:
 - Debounced input (800ms delay before API call)
@@ -147,7 +147,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **VocabularyScreen** — Saved words list, frequency sorting
 
-**Components** (`ui/components/`): TranslationResultCard, VocabularyCard, ErrorCard, InputPanel, MicButton, LanguageDirectionBar, ImageSourceDialog, ApiKeyDialog, SectionLabel.
+**Components** (`ui/components/`): TranslationResultCard, VocabularyCard, ErrorCard, InputPanel, MicButton, LanguageDirectionBar, ImageSourceDialog, SettingsDialog, SectionLabel.
 
 ### Platform-Specific (expect/actual)
 
