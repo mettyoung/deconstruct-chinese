@@ -11,6 +11,13 @@ val doubaoApiKey: String = run {
     props.getProperty("doubao.apiKey") ?: System.getenv("DOUBAO_API_KEY") ?: ""
 }
 
+// Release signing — read from keystore.properties (gitignored). Absent => release
+// builds are unsigned (debug/CI still work).
+val keystoreProps = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+val hasReleaseSigning = keystoreProps.getProperty("storeFile") != null
+
 // iOS has no BuildConfig; generate the key into an iosMain source instead.
 // Web is intentionally excluded — a key in the JS bundle is readable by anyone.
 val generateIosSecrets by tasks.registering {
@@ -134,9 +141,22 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
