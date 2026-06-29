@@ -45,7 +45,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Tests
 ./gradlew :composeApp:connectedAndroidTest
+
+# Signed release bundle for Play Store (needs keystore.properties at repo root)
+./gradlew :composeApp:bundleRelease   # -> composeApp/build/outputs/bundle/release/composeApp-release.aab
 ```
+
+**Release signing**: `signingConfigs.release` reads `storeFile`/`storePassword`/`keyAlias`/`keyPassword` from `keystore.properties` (repo root, **gitignored**, alongside the `*.jks`). If absent, release builds are unsigned. Uses Play App Signing (upload key).
 
 ### iOS
 Open `/iosApp` in Xcode and run via IDE (KMP bridging through framework in `composeApp/build/` after Gradle sync).
