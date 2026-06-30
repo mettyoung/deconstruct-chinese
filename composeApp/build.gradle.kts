@@ -154,6 +154,11 @@ android {
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            // Bundle native debug symbols (Compose/Skia .so libs) into the AAB so
+            // Play can symbolicate native crashes — clears the upload warning.
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
