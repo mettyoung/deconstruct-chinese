@@ -18,6 +18,21 @@ val keystoreProps = Properties().apply {
 }
 val hasReleaseSigning = keystoreProps.getProperty("storeFile") != null
 
+// Auto-increment versionCode from the git commit count — monotonic, no manual
+// bumps. Release builds need full git history (not a shallow clone); falls back
+// to 1 if git is unavailable. Avoid squashing already-released history, or the
+// count can regress below a code Play has already accepted.
+val gitCommitCount: Int = run {
+    try {
+        ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .directory(rootProject.projectDir)
+            .start()
+            .inputStream.bufferedReader().readText().trim().toIntOrNull() ?: 1
+    } catch (e: Exception) {
+        1
+    }
+}
+
 // iOS has no BuildConfig; generate the key into an iosMain source instead.
 // Web is intentionally excluded — a key in the JS bundle is readable by anyone.
 val generateIosSecrets by tasks.registering {
@@ -127,7 +142,7 @@ android {
         applicationId = "com.mettyoung.deconstructchinese"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
+        versionCode = gitCommitCount
         versionName = "1.0.1"
         buildConfigField("String", "DOUBAO_API_KEY", "\"$doubaoApiKey\"")
     }
