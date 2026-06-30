@@ -20,8 +20,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build**: Gradle 8.11 with version catalog (libs.versions.toml)
 - **Audio**: Platform-specific TTS (Android `TextToSpeech`, iOS `AVSpeechSynthesizer`; web stub)
 - **Speech Input**: Hold-to-record via `SpeechRecognizer` expect/actual (Android `android.speech`, iOS `SFSpeechRecognizer`)
-- **OCR**: `OcrReader` expect/actual (Android ML Kit text-recognition + chinese, iOS Vision)
-- **Image Picker**: `rememberImagePickerLauncher` expect fun (Android ActivityResultContracts, iOS UIImagePickerController)
 - **API Key**: `Secrets` expect/actual `defaultApiKey` — Android pulls from `BuildConfig.DOUBAO_API_KEY`, iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""`. The provider key is **bundled**; there is no user-facing API-key entry. `AppSettings.apiKey` returns `defaultApiKey`.
 
 ### Target Platforms
@@ -85,11 +83,9 @@ Open `/iosApp` in Xcode and run via IDE (KMP bridging through framework in `comp
 - `savedVocabulary`: StateFlow from VocabularyStore
 - `isPlaying`: Audio playback status
 - `recordingPhase`: `RecordingPhase` enum (`Idle`/`Armed`/`Listening`) driven by `SpeechRecognizer.results` flow
-- `isProcessingImage`: OCR in-progress state
-- `snackbarMessage`: SharedFlow for speech/OCR errors (non-fatal, shown as snackbar)
+- `snackbarMessage`: SharedFlow for speech errors (non-fatal, shown as snackbar)
 - `onSharedText(String)`: entry point from `IncomingText` bus; auto-sets direction by detecting Han chars
 - `startRecording()` / `stopRecording()`: wraps SpeechRecognizer; locale derived from `toEnglish` + `useSimplified`
-- `processImage(ByteArray)`: runs OcrReader, sets inputText on success
 
 `TranslationState` sealed class lives in `model/TranslationResult.kt` alongside `TranslationResult`, `VocabularyItem`, `Language`.
 
@@ -165,9 +161,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **SpeechRecognizer** (`speech/`) — emits `SpeechResult` (`Ready` / `SpeechStarted` / `Partial` / `Final` / `Cancelled` / `Error`); ViewModel maps these to `RecordingPhase` transitions.
 
-**OcrReader** (`ocr/`) — `recognizeText(bytes, OcrLanguage)` returns a `Flow<OcrResult>` (`Success`/`Error`). Android uses ML Kit's Chinese + Latin recognizers; iOS uses Vision.
 
-**ImagePickerLauncher** (`ui/`) — `rememberImagePickerLauncher { bytes -> }`; Android opens gallery via `ActivityResultContracts`, iOS via `UIImagePickerController`.
 
 **AppContext** (Android, in `audio/` package): holds `applicationContext`; set from `MainActivity.onCreate`. Required because `AudioPlayer`/recognizers are constructed from common code.
 
@@ -175,7 +169,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 - `MainActivity` — `singleTop` launcher (MAIN/LAUNCHER only); receives shared text via `SEND` and forwards to `IncomingText`.
 - `TranslatePopupActivity` (androidMain) — handles `PROCESS_TEXT` in a translucent floating dialog (`singleTask`, `excludeFromRecents`, Popup theme, intent-filter `priority=100`). Drives `TranslatorPopupViewModel`, reuses the shared `TranslationResultCard`/`ErrorCard` (card actions mapped to "Open in App", which bridges to `MainActivity`). PROCESS_TEXT now lives here, not on `MainActivity`.
 
-**`webMain` sourceSet** — intermediate parent of `jsMain` + `wasmJsMain` (wired via the default hierarchy template + matching `src/webMain` directory). Hosts no-op stubs for AudioPlayer, SpeechRecognizer, OcrReader, ImagePickerLauncher, plus `isWebPlatform = true`.
+**`webMain` sourceSet** — intermediate parent of `jsMain` + `wasmJsMain` (wired via the default hierarchy template + matching `src/webMain` directory). Hosts no-op stubs for AudioPlayer, SpeechRecognizer, plus `isWebPlatform = true`.
 
 ## Key Design Decisions
 
@@ -228,4 +222,4 @@ Add new deps to `libs.versions.toml` version catalog only; do not hardcode versi
 - **iOS framework**: Gradle builds framework binary to `composeApp/build/XCFramework/` after Kotlin compilation; Xcode links it.
 - **Web audio stub**: TTS not implemented for JS/WASM; UI gracefully hides audio buttons on web.
 - **Shared text entry**: Android `PROCESS_TEXT` is handled by `TranslatePopupActivity` (floating popup), while `SEND` shares go to `MainActivity` → `IncomingText`. iOS share extension is currently reverted (see commit `fd42978`); `submitSharedText()` remains in commonMain for re-introduction.
-- **Android-only permissions** (`AndroidManifest.xml`): `INTERNET`, `RECORD_AUDIO`, `CAMERA`. `MainActivity` is `singleTop` (launcher); `TranslatePopupActivity` is `singleTask` + `excludeFromRecents` for the PROCESS_TEXT popup.
+- **Android-only permissions** (`AndroidManifest.xml`): `INTERNET`, `RECORD_AUDIO`. `MainActivity` is `singleTop` (launcher); `TranslatePopupActivity` is `singleTask` + `excludeFromRecents` for the PROCESS_TEXT popup.

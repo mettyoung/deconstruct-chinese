@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material3.Button
@@ -54,14 +53,12 @@ fun InputPanel(
     inputText: String,
     toEnglish: Boolean,
     recordingPhase: RecordingPhase,
-    isProcessingImage: Boolean,
     translationState: TranslationState,
     onInputChange: (String) -> Unit,
     onClear: () -> Unit,
     onTranslate: () -> Unit,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
-    onScanImage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -137,27 +134,11 @@ fun InputPanel(
                     Spacer(Modifier.weight(1f))
 
                     if (!isWebPlatform) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (isProcessingImage) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(4.dp), color = BluePrimary, strokeWidth = 2.dp)
-                            } else {
-                                IconButton(
-                                    onClick = onScanImage, 
-                                    enabled = !recording,
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Icon(Icons.Default.CameraAlt, contentDescription = "Scan image", tint = TextSecondary, modifier = Modifier.size(20.dp))
-                                }
-                            }
-                            MicButton(
-                                recordingPhase = recordingPhase,
-                                onStartRecording = onStartRecording,
-                                onStopRecording = onStopRecording
-                            )
-                        }
+                        MicButton(
+                            recordingPhase = recordingPhase,
+                            onStartRecording = onStartRecording,
+                            onStopRecording = onStopRecording
+                        )
                     }
                 } else {
                     Spacer(Modifier.weight(1f))

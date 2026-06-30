@@ -28,9 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.mettyoung.deconstructchinese.model.RecordingPhase
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
-import com.mettyoung.deconstructchinese.ui.ImagePickerLauncher
 import com.mettyoung.deconstructchinese.ui.components.ErrorCard
-import com.mettyoung.deconstructchinese.ui.components.ImageSourceDialog
 import com.mettyoung.deconstructchinese.ui.components.InputPanel
 import com.mettyoung.deconstructchinese.ui.components.LanguageDirectionBar
 import com.mettyoung.deconstructchinese.ui.components.TranslationResultCard
@@ -44,10 +42,8 @@ fun TranslateScreen(
     toEnglish: Boolean,
     isPlaying: Boolean,
     recordingPhase: RecordingPhase,
-    isProcessingImage: Boolean,
     savedVocab: List<VocabularyItem>,
     useSimplified: Boolean,
-    imagePicker: ImagePickerLauncher,
     onInputChange: (String) -> Unit,
     onClear: () -> Unit,
     onTranslate: () -> Unit,
@@ -61,16 +57,6 @@ fun TranslateScreen(
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit
 ) {
-    var showImageSourceDialog by remember { mutableStateOf(false) }
-
-    if (showImageSourceDialog) {
-        ImageSourceDialog(
-            onCamera = { showImageSourceDialog = false; imagePicker.launchCamera() },
-            onGallery = { showImageSourceDialog = false; imagePicker.launchGallery() },
-            onDismiss = { showImageSourceDialog = false }
-        )
-    }
-
     Column(modifier = modifier.fillMaxSize().statusBarsPadding()) {
         TranslateHeader(onOpenSettings = onOpenSettings)
 
@@ -88,14 +74,12 @@ fun TranslateScreen(
                 inputText = inputText,
                 toEnglish = toEnglish,
                 recordingPhase = recordingPhase,
-                isProcessingImage = isProcessingImage,
                 translationState = translationState,
                 onInputChange = onInputChange,
                 onClear = onClear,
                 onTranslate = onTranslate,
                 onStartRecording = onStartRecording,
                 onStopRecording = onStopRecording,
-                onScanImage = { showImageSourceDialog = true },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 

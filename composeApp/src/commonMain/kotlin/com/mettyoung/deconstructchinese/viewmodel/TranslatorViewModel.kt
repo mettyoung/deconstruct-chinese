@@ -9,9 +9,6 @@ import com.mettyoung.deconstructchinese.model.TranslationResult
 import com.mettyoung.deconstructchinese.model.TranslationState
 import com.mettyoung.deconstructchinese.model.VocabularyItem
 import com.mettyoung.deconstructchinese.network.TranslationService
-import com.mettyoung.deconstructchinese.ocr.OcrLanguage
-import com.mettyoung.deconstructchinese.ocr.OcrReader
-import com.mettyoung.deconstructchinese.ocr.OcrResult
 import com.mettyoung.deconstructchinese.speech.SpeechRecognizer
 import com.mettyoung.deconstructchinese.speech.SpeechResult
 import com.mettyoung.deconstructchinese.storage.AppSettings
@@ -33,7 +30,6 @@ class TranslatorViewModel(
 
     private val audioPlayer = AudioPlayer()
     private val speechRecognizer = SpeechRecognizer()
-    private val ocrReader = OcrReader()
 
     private val _translationState =
         MutableStateFlow<TranslationState>(TranslationState.Idle)
@@ -49,8 +45,6 @@ class TranslatorViewModel(
     private val _recordingPhase = MutableStateFlow(RecordingPhase.Idle)
     val recordingPhase: StateFlow<RecordingPhase> = _recordingPhase.asStateFlow()
 
-    private val _isProcessingImage = MutableStateFlow(false)
-    val isProcessingImage: StateFlow<Boolean> = _isProcessingImage.asStateFlow()
 
     private val _snackbarMessage = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val snackbarMessage: SharedFlow<String> = _snackbarMessage.asSharedFlow()
@@ -221,21 +215,6 @@ class TranslatorViewModel(
             _recordingPhase.value = RecordingPhase.Idle
         }
         speechRecognizer.stopListening()
-    }
-
-    fun processImage(imageBytes: ByteArray) {
-        // Source side of the toggle: toEnglish == translating Chinese -> English.
-        val language = if (_toEnglish.value) OcrLanguage.CHINESE else OcrLanguage.ENGLISH
-        _isProcessingImage.value = true
-        viewModelScope.launch {
-            ocrReader.recognizeText(imageBytes, language).collect { result ->
-                _isProcessingImage.value = false
-                when (result) {
-                    is OcrResult.Success -> onInputTextChange(result.text)
-                    is OcrResult.Error -> _snackbarMessage.tryEmit(result.message)
-                }
-            }
-        }
     }
 
     fun speakTranslation() {

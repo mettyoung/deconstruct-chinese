@@ -37,7 +37,6 @@ import com.mettyoung.deconstructchinese.IncomingText
 import com.mettyoung.deconstructchinese.network.DoubaoService
 import com.mettyoung.deconstructchinese.storage.AppSettings
 import com.mettyoung.deconstructchinese.ui.components.SettingsDialog
-import com.mettyoung.deconstructchinese.ui.rememberImagePickerLauncher
 import com.mettyoung.deconstructchinese.ui.theme.Background
 import com.mettyoung.deconstructchinese.ui.theme.BluePrimary
 import com.mettyoung.deconstructchinese.ui.theme.GoldAccent
@@ -58,7 +57,6 @@ fun TranslatorRoute() {
     val toEnglish by viewModel.toEnglish.collectAsStateWithLifecycle()
     val useSimplified by viewModel.useSimplified.collectAsStateWithLifecycle()
     val recordingPhase by viewModel.recordingPhase.collectAsStateWithLifecycle()
-    val isProcessingImage by viewModel.isProcessingImage.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
@@ -68,7 +66,6 @@ fun TranslatorRoute() {
         IncomingText.texts.collect { viewModel.onSharedText(it) }
     }
 
-    val imagePicker = rememberImagePickerLauncher { viewModel.processImage(it) }
 
     var showSettings by remember { mutableStateOf(false) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -100,10 +97,8 @@ fun TranslatorRoute() {
                     toEnglish = toEnglish,
                     isPlaying = isPlaying,
                     recordingPhase = recordingPhase,
-                    isProcessingImage = isProcessingImage,
                     savedVocab = savedVocab,
                     useSimplified = useSimplified,
-                    imagePicker = imagePicker,
                     onInputChange = viewModel::onInputTextChange,
                     onClear = viewModel::clearAll,
                     onTranslate = viewModel::translate,
