@@ -24,10 +24,10 @@ val hasReleaseSigning = keystoreProps.getProperty("storeFile") != null
 // count can regress below a code Play has already accepted.
 val gitCommitCount: Int = run {
     try {
-        ProcessBuilder("git", "rev-list", "--count", "HEAD")
-            .directory(rootProject.projectDir)
-            .start()
-            .inputStream.bufferedReader().readText().trim().toIntOrNull() ?: 1
+        providers.exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+            workingDir = rootProject.projectDir
+        }.standardOutput.asText.get().trim().toIntOrNull() ?: 1
     } catch (e: Exception) {
         1
     }
