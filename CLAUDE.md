@@ -9,18 +9,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**DeconstructChinese** — Kotlin Multiplatform Compose app for Chinese character translation and learning. Targets Android, iOS, Web (JS/WASM). Translates text via an OpenAI-compatible LLM provider (Doubao by default), stores vocabulary locally with frequency tracking.
+**DeconstructChinese** — Kotlin Multiplatform Compose app for Chinese character translation and learning. Targets Android, iOS, Web (JS/WASM). Translates text via an OpenAI-compatible LLM provider (Qwen on Alibaba DashScope by default), stores vocabulary locally with frequency tracking.
 
 ### Technology Stack
 
 - **KMP**: Kotlin 2.3, Compose Multiplatform 1.10
 - **Network**: Ktor Client 3.0 (OkHttp on Android, Darwin on iOS)
 - **State**: ViewModel + StateFlow, Multiplatform Settings for persistence
-- **Translation**: `TranslationService` interface over OpenAI-compatible chat/completions; Doubao (`seed-2-0-lite-260228`) is the wired default, Qwen (`qwen-plus`) adapter also present
+- **Translation**: `TranslationService` interface over OpenAI-compatible chat/completions; Qwen (`qwen-plus` on DashScope) is the wired default; Doubao (`seed-2-0-lite-260228`) and OpenRouter adapters also present but unused
 - **Build**: Gradle 8.11 with version catalog (libs.versions.toml)
 - **Audio**: Platform-specific TTS (Android `TextToSpeech`, iOS `AVSpeechSynthesizer`; web stub)
 - **Speech Input**: Hold-to-record via `SpeechRecognizer` expect/actual (Android `android.speech`, iOS `SFSpeechRecognizer`)
-- **API Key**: `Secrets` expect/actual `defaultApiKey` — Android pulls from `BuildConfig.DOUBAO_API_KEY`, iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""`. The provider key is **bundled**; there is no user-facing API-key entry. `AppSettings.apiKey` returns `defaultApiKey`.
+- **API Key**: `Secrets` expect/actual `defaultApiKey` — Android pulls from `BuildConfig.QWEN_API_KEY` (build reads `qwen.apiKey` from `local.properties`), iOS uses generated source via `generateIosSecrets` Gradle task, Web returns `""`. The provider key is **bundled**; there is no user-facing API-key entry. `AppSettings.apiKey` returns `defaultApiKey`.
 
 ### Target Platforms
 
@@ -115,7 +115,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 ### Network
 
-**TranslationService** (`network/`) — interface with two entry points: `translate(...) -> TranslationResult` (full JSON: translation + pinyin + vocab breakdown) and `translateStream(...) -> Flow<String>` (plain translation only, streamed token-by-token). The provider is **hard-wired to `DoubaoService`** at the call sites (`TranslatorRoute`, `TranslatePopupActivity`); there is no settings/enum switch yet.
+**TranslationService** (`network/`) — interface with two entry points: `translate(...) -> TranslationResult` (full JSON: translation + pinyin + vocab breakdown) and `translateStream(...) -> Flow<String>` (plain translation only, streamed token-by-token). The provider is **hard-wired to `QwenService`** at the call sites (`TranslatorRoute`, `TranslatePopupActivity`); there is no settings/enum switch yet.
 
 **Two-phase translation (latency optimization)**: both ViewModels run a two-stage pipeline. **Stage 1** calls `translateStream` and emits `TranslationState.Success(result, vocabLoading = true)` as tokens arrive — the translation + whole-sentence pinyin paint immediately (Doubao-app-fast). The stream prompt asks for `<translation>|||<pinyin>` (delimiter `OpenAiCompatibleTranslator.STREAM_DELIMITER`); the base parses it into `PartialTranslation(translation, pinyin)` so the translation fills first, then pinyin. **Stage 2** calls `translate` for the full per-word breakdown and replaces it with `vocabLoading = false`. If stage 2 fails but stage 1 succeeded, the streamed result is kept (`vocabLoading = false`, no error). `TranslationResultCard` renders the raw Chinese with whole-sentence pinyin above it (no per-word segmentation) while `vocabulary` is empty, and shows a "Loading breakdown…" spinner under the VOCABULARY BREAKDOWN label.
 
@@ -129,8 +129,9 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 - Platform HTTP engines injected via sourceSets (OkHttp/Darwin/Browser default)
 
 **Adapters**:
-- `DoubaoService` — **default**. Model `seed-2-0-lite-260228`, endpoint `https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions`, `disableThinking = true`
-- `OpenRouterService` — present, unused at call sites. Model `qwen/qwen3-14b`, endpoint `https://openrouter.ai/api/v1/chat/completions`, `userPromptPrefix = "/no_think"`. Note OpenRouter cannot pass Doubao's `thinking` param, so the same seed model runs ~3–5x slower there than direct.
+- `QwenService` — **default**. Model `qwen-plus`, endpoint `https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions` (Alibaba DashScope, international/Singapore). Not a hybrid reasoning model, so no `disableThinking`. Supports JSON mode + streaming for the two-phase pipeline.
+- `DoubaoService` — present, unused. Model `seed-2-0-lite-260228`, endpoint `https://ark.ap-southeast.bytepluses.com/api/v3/chat/completions`, `disableThinking = true`.
+- `OpenRouterService` — present, unused. Model `qwen/qwen3-14b`, endpoint `https://openrouter.ai/api/v1/chat/completions`, `userPromptPrefix = "/no_think"`.
 - `QwenService` — present but currently unused. Model `qwen-plus`, endpoint `https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions`
 
 **grammarNote**: `TranslationResult.grammarNote` (`model/TranslationResult.kt`) is populated when `includeGrammarNote = true` and rendered in `TranslationResultCard` when non-blank. The popup VM disables it.
@@ -185,7 +186,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 5. **Multiplatform Settings over platform-specific**: Unified persistence API; serialization plugin for complex types (List<VocabularyItem>).
 
-6. **API key injection diverges by platform**: Android via `BuildConfig` (build.gradle reads `doubao.apiKey` from `local.properties` or `DOUBAO_API_KEY` env var); iOS via the `generateIosSecrets` task that writes `SecretsGenerated.kt` into `iosMain` build output; Web intentionally has empty default (would leak in JS bundle). All platforms persist a user-supplied override in `AppSettings.apiKey` — note the persisted Settings key is still literally `"qwen_api_key"` (not renamed after the Doubao switch).
+6. **API key injection diverges by platform**: Android via `BuildConfig` (build.gradle reads `qwen.apiKey` from `local.properties` or `QWEN_API_KEY` env var); iOS via the `generateIosSecrets` task that writes `SecretsGenerated.kt` into `iosMain` build output; Web intentionally has empty default (would leak in JS bundle). The key is bundled; `AppSettings.apiKey` returns `defaultApiKey` (no user override UI).
 
 ## Common Workflows
 
@@ -196,7 +197,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 4. Preference persists automatically via Multiplatform Settings
 
 ### Fixing a translation issue
-1. Check prompt/request logic in `OpenAiCompatibleTranslator` (shared) and the active adapter (`DoubaoService`)
+1. Check prompt/request logic in `OpenAiCompatibleTranslator` (shared) and the active adapter (`QwenService`)
 2. Verify `TranslationResult` data class matches API response
 3. Add error case to `ViewModel.translate()` catch block if needed
 4. Test via Android debug build (fastest iteration)
