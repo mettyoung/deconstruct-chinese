@@ -29,6 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Android | 29 | 36 | OkHttp client, Google Play Services on Android |
 | iOS | 13+ | Arm64 + SimulatorArm64 | Darwin (native) HTTP client |
 | Web | N/A | Modern browsers | JS and WASM targets (audio TTS not implemented) |
+| Desktop | N/A | macOS/Windows/Linux (JVM 17) | `jvm("desktop")`; Java HTTP client; TTS/speech stubbed |
 
 ## Build Commands
 
@@ -63,6 +64,19 @@ Open `/iosApp` in Xcode and run via IDE (KMP bridging through framework in `comp
 # JS (slower, older browser support)
 ./gradlew :composeApp:jsBrowserDevelopmentRun
 ```
+
+### Desktop (JVM)
+```bash
+# Run the app
+./gradlew :composeApp:run
+
+# Native app image (bundled JRE) -> build/compose/binaries/main/app/DeconstructChinese.app
+./gradlew :composeApp:createDistributable
+
+# Native installer (dmg/msi/deb for the current OS)
+./gradlew :composeApp:packageDistributionForCurrentOS
+```
+Entry point: `desktopMain/.../main.kt` (`MainKt`). Bundled Qwen key via `generateDesktopSecrets` (mirrors iOS).
 
 ### Common
 ```bash
@@ -174,6 +188,8 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **`webMain` sourceSet** — intermediate parent of `jsMain` + `wasmJsMain` (wired via the default hierarchy template + matching `src/webMain` directory). Hosts no-op stubs for AudioPlayer, SpeechRecognizer, plus `isWebPlatform = true`.
 
+**`desktopMain` sourceSet** (`jvm("desktop")`) — Compose Desktop entry `main.kt`, Java HTTP client (`ktor-client-java`), `kotlinx-coroutines-swing`. Actuals: `AudioPlayer` (speak/stop no-op, `playListenCue` = AWT beep), `SpeechRecognizer` (unsupported — emits `Error`), `Platform` (`isWebPlatform = false`), `Secrets` (`defaultApiKey` from `generateDesktopSecrets`). Mic button still renders on desktop but recording is a no-op.
+
 ## Key Design Decisions
 
 1. **ViewModel in common**: AndroidX ViewModel is multiplatform-compatible (via lifecycle-viewmodel-compose); used in all platforms for consistency.
@@ -186,7 +202,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 5. **Multiplatform Settings over platform-specific**: Unified persistence API; serialization plugin for complex types (List<VocabularyItem>).
 
-6. **API key injection diverges by platform**: Android via `BuildConfig` (build.gradle reads `qwen.apiKey` from `local.properties` or `QWEN_API_KEY` env var); iOS via the `generateIosSecrets` task that writes `SecretsGenerated.kt` into `iosMain` build output; Web intentionally has empty default (would leak in JS bundle). The key is bundled; `AppSettings.apiKey` returns `defaultApiKey` (no user override UI).
+6. **API key injection diverges by platform**: Android via `BuildConfig` (build.gradle reads `qwen.apiKey` from `local.properties` or `QWEN_API_KEY` env var); iOS via the `generateIosSecrets` task and Desktop via `generateDesktopSecrets` (both write a `SecretsGenerated.kt` const into their build output); Web intentionally has empty default (would leak in JS bundle). The key is bundled; `AppSettings.apiKey` returns `defaultApiKey` (no user override UI).
 
 ## Common Workflows
 

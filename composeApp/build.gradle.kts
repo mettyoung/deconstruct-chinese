@@ -1,3 +1,4 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
@@ -52,6 +53,25 @@ val generateIosSecrets by tasks.registering {
     }
 }
 
+// Desktop (JVM) also has no BuildConfig; generate the key into a desktopMain source.
+val generateDesktopSecrets by tasks.registering {
+    val outDir = layout.buildDirectory.dir("generated/desktopSecrets/kotlin")
+    val key = qwenApiKey
+    inputs.property("qwenApiKey", key)
+    outputs.dir(outDir)
+    doLast {
+        val pkgDir = outDir.get().asFile.resolve("com/mettyoung/deconstructchinese/config")
+        pkgDir.mkdirs()
+        pkgDir.resolve("SecretsGenerated.kt").writeText(
+            """
+            package com.mettyoung.deconstructchinese.config
+
+            internal const val desktopDefaultApiKey: String = "$key"
+            """.trimIndent() + "\n"
+        )
+    }
+}
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -77,11 +97,17 @@ kotlin {
         }
     }
     
+    jvm("desktop") {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+
     js {
         browser()
         binaries.executable()
     }
-    
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
@@ -124,6 +150,15 @@ kotlin {
             kotlin.srcDir(generateIosSecrets)
             dependencies {
                 implementation(libs.ktor.client.darwin)
+            }
+        }
+
+        val desktopMain by getting {
+            kotlin.srcDir(generateDesktopSecrets)
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(libs.ktor.client.java)
+                implementation(libs.kotlinx.coroutines.swing)
             }
         }
 
@@ -184,4 +219,15 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+}
+
+compose.desktop {
+    application {
+        mainClass = "com.mettyoung.deconstructchinese.MainKt"
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            packageName = "DeconstructChinese"
+            packageVersion = "1.0.1"
+        }
+    }
 }
