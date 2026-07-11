@@ -105,7 +105,7 @@ Entry point: `desktopMain/.../main.kt` (`MainKt`). Bundled Qwen key via `generat
 
 `TranslationState` sealed class lives in `model/TranslationResult.kt` alongside `TranslationResult`, `VocabularyItem`, `Language`.
 
-ViewModel created once per app lifecycle; state flows collected in Compose via `collectAsStateWithLifecycle()`.
+ViewModel created once per app lifecycle; state flows collected in Compose via plain `collectAsState()`. **Do not use `collectAsStateWithLifecycle()`** — it only collects while a `LifecycleOwner` is ≥ STARTED, which Compose Desktop's window lifecycle never reaches, so the UI silently stops observing updates there.
 
 **TranslatorPopupViewModel** (`viewmodel/`) — stripped-down VM for the Android floating popup (see TranslatePopupActivity below). Single `translationState: StateFlow<TranslationState>`, fixed Chinese→English, `includeGrammarNote = false`, no audio/OCR/vocab/debounce. `translate(text)` early-exits on empty / non-Chinese / missing API key before calling the `TranslationService`.
 
