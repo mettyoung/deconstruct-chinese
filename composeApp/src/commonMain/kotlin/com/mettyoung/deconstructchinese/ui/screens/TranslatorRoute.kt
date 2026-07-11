@@ -29,7 +29,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -50,13 +50,13 @@ fun TranslatorRoute() {
         initializer { TranslatorViewModel(QwenService(AppSettings.apiKey)) }
     })
 
-    val inputText by viewModel.inputText.collectAsStateWithLifecycle()
-    val translationState by viewModel.translationState.collectAsStateWithLifecycle()
-    val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
-    val savedVocab by viewModel.savedVocabulary.collectAsStateWithLifecycle()
-    val toEnglish by viewModel.toEnglish.collectAsStateWithLifecycle()
-    val useSimplified by viewModel.useSimplified.collectAsStateWithLifecycle()
-    val recordingPhase by viewModel.recordingPhase.collectAsStateWithLifecycle()
+    val inputText by viewModel.inputText.collectAsState()
+    val translationState by viewModel.translationState.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val savedVocab by viewModel.savedVocabulary.collectAsState()
+    val toEnglish by viewModel.toEnglish.collectAsState()
+    val useSimplified by viewModel.useSimplified.collectAsState()
+    val recordingPhase by viewModel.recordingPhase.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
