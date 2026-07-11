@@ -157,7 +157,9 @@ kotlin {
             kotlin.srcDir(generateDesktopSecrets)
             dependencies {
                 implementation(compose.desktop.currentOs)
-                implementation(libs.ktor.client.java)
+                // OkHttp (not the Java engine) — same engine as Android, which
+                // streams SSE incrementally so the two-phase stage-1 flow completes.
+                implementation(libs.ktor.client.okhttp)
                 implementation(libs.kotlinx.coroutines.swing)
             }
         }
