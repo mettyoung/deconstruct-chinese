@@ -29,7 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Android | 29 | 36 | OkHttp client, Google Play Services on Android |
 | iOS | 13+ | Arm64 + SimulatorArm64 | Darwin (native) HTTP client |
 | Web | N/A | Modern browsers | JS and WASM targets (audio TTS not implemented) |
-| Desktop | N/A | macOS/Windows/Linux (JVM 17) | `jvm("desktop")`; Java HTTP client; TTS/speech stubbed |
+| Desktop | N/A | macOS/Windows/Linux (JVM 17) | `jvm("desktop")`; OkHttp client (streams SSE); TTS/speech stubbed |
 
 ## Build Commands
 
@@ -188,7 +188,7 @@ ViewModel created once per app lifecycle; state flows collected in Compose via `
 
 **`webMain` sourceSet** — intermediate parent of `jsMain` + `wasmJsMain` (wired via the default hierarchy template + matching `src/webMain` directory). Hosts no-op stubs for AudioPlayer, SpeechRecognizer, plus `isWebPlatform = true`.
 
-**`desktopMain` sourceSet** (`jvm("desktop")`) — Compose Desktop entry `main.kt`, Java HTTP client (`ktor-client-java`), `kotlinx-coroutines-swing`. Actuals: `AudioPlayer` (speak/stop no-op, `playListenCue` = AWT beep), `SpeechRecognizer` (unsupported — emits `Error`), `Platform` (`isWebPlatform = false`), `Secrets` (`defaultApiKey` from `generateDesktopSecrets`). Mic button still renders on desktop but recording is a no-op.
+**`desktopMain` sourceSet** (`jvm("desktop")`) — Compose Desktop entry `main.kt`, OkHttp HTTP client (`ktor-client-okhttp` — the Java engine doesn't stream SSE, breaking the two-phase stage-1 flow), `kotlinx-coroutines-swing`. Actuals: `AudioPlayer` (speak/stop no-op, `playListenCue` = AWT beep), `SpeechRecognizer` (unsupported — emits `Error`), `Platform` (`isWebPlatform = false`), `Secrets` (`defaultApiKey` from `generateDesktopSecrets`). Mic button still renders on desktop but recording is a no-op.
 
 ## Key Design Decisions
 
